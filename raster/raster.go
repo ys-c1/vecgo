@@ -20,7 +20,17 @@ func New(w, h int) (*Image, error) {
 	return &Image{W: w, H: h, Pix: make([]uint8, w*h)}, nil
 }
 
+// Fill draws every polygon in polys once.  It keeps the original per-figure
+// interface: each entry of polys is one figure and is submitted to the
+// rasteriser independently.
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
+	return im.FillCounting(polys, supersample, nil)
+}
+
+// FillCounting behaves exactly like Fill but, when drawn is non-nil, reports
+// how many figures were actually drawn.  A caller that merges duplicates can
+// pass a counter without changing the drawing behaviour for existing callers.
+func (im *Image) FillCounting(polys [][]geom.Point, supersample int, drawn *int) error {
 	if supersample < 1 {
 		return errors.New("supersample 必须为正")
 	}
@@ -28,6 +38,12 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 		if len(p) < 3 {
 			return errors.New("多边形至少三个顶点")
 		}
+	}
+	if drawn != nil {
+		*drawn = len(polys)
+	}
+	if len(polys) == 0 {
+		return nil
 	}
 	minx, miny := polys[0][0].X, polys[0][0].Y
 	maxx, maxy := minx, miny
