@@ -11,7 +11,7 @@ import (
 
 func main() {
 	cfg := config.Default()
-	scene := [][]geom.Point{{{0, 0}, {10, 0}, {10, 10}, {0, 10}}}
+	scene := [][]geom.Point{{{X: 0, Y: 0}, {X: 10, Y: 0}, {X: 10, Y: 10}, {X: 0, Y: 10}}}
 	im, err := pipe.Run(scene, cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "失败:", err)
