@@ -10,14 +10,21 @@ func Gamma(im *raster.Image, gamma float64) error {
 	if gamma < 0.1 || gamma > 10 {
 		return errors.New("gamma 超出范围")
 	}
-	var table [256]uint8
-	for i := 0; i < 256; i++ {
-		table[i] = uint8(255 * pow(float64(i)/255, 1/gamma))
-	}
+	table := GammaTable(gamma)
 	for i := range im.Pix {
 		im.Pix[i] = table[im.Pix[i]]
 	}
 	return nil
+}
+
+// GammaTable 返回与 Gamma 完全相同的 256 项查找表，
+// 供增量渲染路径复用，保证两条路径查表结果逐字节一致。
+func GammaTable(gamma float64) [256]uint8 {
+	var table [256]uint8
+	for i := 0; i < 256; i++ {
+		table[i] = uint8(255 * pow(float64(i)/255, 1/gamma))
+	}
+	return table
 }
 
 func Blur(im *raster.Image, radius int) (*raster.Image, error) {
