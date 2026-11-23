@@ -21,8 +21,22 @@ func New(w, h int) (*Image, error) {
 }
 
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
+	vis := make([]bool, len(polys))
+	for i := range vis {
+		vis[i] = true
+	}
+	return im.FillVisible(polys, vis, supersample)
+}
+
+// FillVisible 与 Fill 相同，但 visible[i] 为 false 的层不参与覆盖。
+// 隐藏层仍参与包围盒计算，因此开关图层不会改变画幅映射，
+// 掩码渲染与手动隐藏图层的参照结果逐像素一致。
+func (im *Image) FillVisible(polys [][]geom.Point, visible []bool, supersample int) error {
 	if supersample < 1 {
 		return errors.New("supersample 必须为正")
+	}
+	if len(visible) != len(polys) {
+		return errors.New("visible 长度必须与图层数一致")
 	}
 	for _, p := range polys {
 		if len(p) < 3 {
@@ -62,8 +76,8 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 				for si := 0; si < supersample; si++ {
 					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
 					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
-					for _, p := range polys {
-						if geom.Inside(p, px, py) {
+					for i, p := range polys {
+						if visible[i] && geom.Inside(p, px, py) {
 							hit++
 							break
 						}

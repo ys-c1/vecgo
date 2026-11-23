@@ -5,6 +5,7 @@ import (
 
 	"vecgo/config"
 	"vecgo/geom"
+	"vecgo/layer"
 	"vecgo/post"
 	"vecgo/raster"
 	"vecgo/shading"
@@ -33,7 +34,15 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	for i, poly := range scene {
 		moved[i] = Transform(poly, cfg.Scale, cfg.Rotate)
 	}
-	if err := im.Fill(moved, cfg.Supersample); err != nil {
+	if cfg.LayerMask != nil {
+		vis, err := layer.Visible((*layer.Mask)(cfg.LayerMask), len(scene))
+		if err != nil {
+			return nil, err
+		}
+		if err := im.FillVisible(moved, vis, cfg.Supersample); err != nil {
+			return nil, err
+		}
+	} else if err := im.Fill(moved, cfg.Supersample); err != nil {
 		return nil, err
 	}
 	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {

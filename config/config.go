@@ -11,6 +11,9 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+	// LayerMask 是运行期图层开关：位 i 对应第 i 层，1 可见 0 隐藏。
+	// nil 表示未设置，全部图层可见（默认行为，与旧版本一致）。
+	LayerMask *uint64
 }
 
 func Default() Config {
