@@ -11,10 +11,13 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+	// Blocks 为按行分块的块数，Workers 为并行 goroutine 上限；均为 1 时走串行基线。
+	Blocks  int
+	Workers int
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm", Blocks: 1, Workers: 1}
 }
 
 func (c Config) Validate() error {
@@ -41,6 +44,12 @@ func (c Config) Validate() error {
 	}
 	if c.Output == "" {
 		return fmt.Errorf("output 不能为空")
+	}
+	if c.Blocks <= 0 {
+		return fmt.Errorf("blocks 字段必须为正: %d", c.Blocks)
+	}
+	if c.Workers <= 0 {
+		return fmt.Errorf("workers 字段必须为正: %d", c.Workers)
 	}
 	return nil
 }
