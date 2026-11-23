@@ -13,7 +13,7 @@ func TestFillSquare(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sq := []geom.Point{{0, 0}, {10, 0}, {10, 10}, {0, 10}}
+	sq := []geom.Point{{X: 0, Y: 0}, {X: 10, Y: 0}, {X: 10, Y: 10}, {X: 0, Y: 10}}
 	if err := im.Fill([][]geom.Point{sq}, 2); err != nil {
 		t.Fatal(err)
 	}

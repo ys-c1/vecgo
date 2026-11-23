@@ -8,7 +8,7 @@ import (
 )
 
 func TestRunProducesPixels(t *testing.T) {
-	scene := [][]geom.Point{{{0, 0}, {10, 0}, {10, 10}, {0, 10}}}
+	scene := [][]geom.Point{{{X: 0, Y: 0}, {X: 10, Y: 0}, {X: 10, Y: 10}, {X: 0, Y: 10}}}
 	cfg := config.Default()
 	cfg.Width, cfg.Height = 16, 16
 	im, err := Run(scene, cfg)
@@ -21,7 +21,7 @@ func TestRunProducesPixels(t *testing.T) {
 }
 
 func TestRunRejectsBadConfig(t *testing.T) {
-	scene := [][]geom.Point{{{0, 0}, {1, 0}, {1, 1}}}
+	scene := [][]geom.Point{{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}}}
 	cfg := config.Default()
 	cfg.Gamma = 0
 	if _, err := Run(scene, cfg); err == nil {
