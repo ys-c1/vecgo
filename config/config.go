@@ -3,18 +3,27 @@ package config
 import "fmt"
 
 type Config struct {
-	Width, Height int
-	Scale         float64
-	Rotate        float64
-	Supersample   int
-	Shading       string
-	Gamma         float64
-	Blur          int
-	Output        string
+	Width, Height  int
+	Scale          float64
+	Rotate         float64
+	Supersample    int
+	Shading        string
+	Gamma          float64
+	Blur           int
+	Dither         bool
+	DitherKernel   string
+	DitherStrength float64
+	DitherDepth    int
+	Output         string
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{
+		Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2,
+		Shading: "flat", Gamma: 1, Blur: 0,
+		Dither: false, DitherKernel: "floyd-steinberg", DitherStrength: 1.0, DitherDepth: 4,
+		Output: "out.pgm",
+	}
 }
 
 func (c Config) Validate() error {
@@ -38,6 +47,17 @@ func (c Config) Validate() error {
 	}
 	if c.Shading != "flat" && c.Shading != "gradient" {
 		return fmt.Errorf("shading 非法: %s", c.Shading)
+	}
+	if c.Dither {
+		if c.DitherKernel != "floyd-steinberg" && c.DitherKernel != "atkinson" {
+			return fmt.Errorf("ditherKernel 非法: %s", c.DitherKernel)
+		}
+		if c.DitherStrength < 0 {
+			return fmt.Errorf("ditherStrength 不能为负: %v", c.DitherStrength)
+		}
+		if c.DitherDepth < 1 || c.DitherDepth > 8 {
+			return fmt.Errorf("ditherDepth 超出范围 [1,8]: %d", c.DitherDepth)
+		}
 	}
 	if c.Output == "" {
 		return fmt.Errorf("output 不能为空")

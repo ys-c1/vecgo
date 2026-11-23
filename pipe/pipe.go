@@ -15,8 +15,8 @@ func Transform(pts []geom.Point, scale, rotate float64) []geom.Point {
 	out := make([]geom.Point, len(pts))
 	for i, p := range pts {
 		out[i] = geom.Point{}
-		out[i].X = scale*(p.X*c-p.Y*s)
-		out[i].Y = scale*(p.X*s+p.Y*c)
+		out[i].X = scale * (p.X*c - p.Y*s)
+		out[i].Y = scale * (p.X*s + p.Y*c)
 	}
 	return out
 }
@@ -45,6 +45,16 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	out, err := post.Blur(im, cfg.Blur)
 	if err != nil {
 		return nil, err
+	}
+	if cfg.Dither {
+		k, err := post.KernelByName(cfg.DitherKernel)
+		if err != nil {
+			return nil, err
+		}
+		out, err = post.Dither(out, k, cfg.DitherStrength, cfg.DitherDepth)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
