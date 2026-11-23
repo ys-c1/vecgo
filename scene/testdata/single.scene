@@ -1,0 +1,9 @@
+# 单图形: 一个正方形
+vecgo-scene 1
+canvas 64 64
+transform 1 0
+shading flat
+gamma 1
+blur 0
+output single.pgm
+poly 0 0 10 0 10 10 0 10

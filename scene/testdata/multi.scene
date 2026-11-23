@@ -1,0 +1,11 @@
+# 多图形: 三个分离的三角形
+vecgo-scene 1
+canvas 64 64
+transform 1 0
+shading flat
+gamma 1
+blur 0
+output multi.pgm
+poly 0 0 5 0 5 5
+poly 20 20 30 20 30 30
+poly 40 0 60 0 60 20

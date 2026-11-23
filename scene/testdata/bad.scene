@@ -1,0 +1,10 @@
+# 坏文件: 版本不符 / 未知字段 / 缺字段 / 越界 / 坏 poly / 超长行
+vecgo-scene 2
+canvas 64 64
+colour red
+transform 1 0
+shading flat
+gamma 99
+blur 0
+poly 0 0 10 0
+poly 0 0 10 0 10 10
