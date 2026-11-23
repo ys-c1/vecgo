@@ -24,5 +24,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, "导出失败:", err)
 		os.Exit(2)
 	}
+	if len(os.Args) > 2 {
+		if err := im.SavePNG(os.Args[2]); err != nil {
+			fmt.Fprintln(os.Stderr, "PNG 导出失败:", err)
+			os.Exit(3)
+		}
+	}
 	fmt.Printf("on=%d size=%dx%d\n", im.CountOn(128), im.W, im.H)
 }
