@@ -33,7 +33,12 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	for i, poly := range scene {
 		moved[i] = Transform(poly, cfg.Scale, cfg.Rotate)
 	}
-	if err := im.Fill(moved, cfg.Supersample); err != nil {
+	// 覆盖率（子点采样）与量化（4/8 位）分层；默认 8 位路径与历史输出一致。
+	cov, err := raster.Coverage(cfg.Width, cfg.Height, moved, cfg.Supersample)
+	if err != nil {
+		return nil, err
+	}
+	if err := raster.Quantize(cov, im, cfg.Bits, cfg.Diffuse); err != nil {
 		return nil, err
 	}
 	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {

@@ -22,63 +22,28 @@ func New(w, h int) (*Image, error) {
 
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 	if supersample < 1 {
-		return errors.New("supersample 必须为正")
+		return ErrSubZero
 	}
 	for _, p := range polys {
 		if len(p) < 3 {
 			return errors.New("多边形至少三个顶点")
 		}
 	}
-	minx, miny := polys[0][0].X, polys[0][0].Y
-	maxx, maxy := minx, miny
-	for _, p := range polys {
-		for _, q := range p {
-			if q.X < minx {
-				minx = q.X
-			}
-			if q.X > maxx {
-				maxx = q.X
-			}
-			if q.Y < miny {
-				miny = q.Y
-			}
-			if q.Y > maxy {
-				maxy = q.Y
-			}
-		}
+	if im.W <= 0 || im.H <= 0 {
+		return ErrEmptyImage
 	}
-	spanx, spany := maxx-minx, maxy-miny
-	if spanx == 0 {
-		spanx = 1
+	// 8 位路径：Coverage(子点覆盖率) + Quantize(256 级)，
+	// Quantize 的 8 位分支与本函数历史整数公式逐字节一致。
+	cov, err := Coverage(im.W, im.H, polys, supersample)
+	if err != nil {
+		return err
 	}
-	if spany == 0 {
-		spany = 1
-	}
-	den := supersample * supersample
-	for row := 0; row < im.H; row++ {
-		for col := 0; col < im.W; col++ {
-			hit := 0
-			for sj := 0; sj < supersample; sj++ {
-				for si := 0; si < supersample; si++ {
-					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
-					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
-					for _, p := range polys {
-						if geom.Inside(p, px, py) {
-							hit++
-							break
-						}
-					}
-				}
-			}
-			im.Pix[row*im.W+col] = uint8(255 * hit / den)
-		}
-	}
-	return nil
+	return Quantize(cov, im, 8, false)
 }
 
 func (im *Image) SavePGM(path string) error {
 	if im.W == 0 || im.H == 0 {
-		return errors.New("空图不能导出")
+		return ErrEmptyImage
 	}
 	f, err := os.Create(path)
 	if err != nil {

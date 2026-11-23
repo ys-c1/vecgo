@@ -1,6 +1,10 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"vecgo/raster"
+)
 
 type Config struct {
 	Width, Height int
@@ -11,10 +15,14 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+	// Bits 覆盖率量化位深，仅支持 4 或 8；默认 8，8 位输出与历史版本一致。
+	Bits int
+	// Diffuse 仅 Bits=4 时生效：true 开 Floyd–Steinberg 误差扩散，false 关闭。
+	Diffuse bool
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm", Bits: 8, Diffuse: true}
 }
 
 func (c Config) Validate() error {
@@ -29,6 +37,9 @@ func (c Config) Validate() error {
 	}
 	if c.Supersample < 1 || c.Supersample > 8 {
 		return fmt.Errorf("supersample 超出范围: %d", c.Supersample)
+	}
+	if c.Bits != 4 && c.Bits != 8 {
+		return fmt.Errorf("%w: %d", raster.ErrBitDepth, c.Bits)
 	}
 	if c.Gamma < 0.1 || c.Gamma > 10 {
 		return fmt.Errorf("gamma 超出范围: %v", c.Gamma)
