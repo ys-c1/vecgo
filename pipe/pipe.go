@@ -15,8 +15,8 @@ func Transform(pts []geom.Point, scale, rotate float64) []geom.Point {
 	out := make([]geom.Point, len(pts))
 	for i, p := range pts {
 		out[i] = geom.Point{}
-		out[i].X = scale*(p.X*c-p.Y*s)
-		out[i].Y = scale*(p.X*s+p.Y*c)
+		out[i].X = scale * (p.X*c - p.Y*s)
+		out[i].Y = scale * (p.X*s + p.Y*c)
 	}
 	return out
 }
