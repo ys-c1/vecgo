@@ -20,17 +20,10 @@ func New(w, h int) (*Image, error) {
 	return &Image{W: w, H: h, Pix: make([]uint8, w*h)}, nil
 }
 
-func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
-	if supersample < 1 {
-		return errors.New("supersample 必须为正")
-	}
-	for _, p := range polys {
-		if len(p) < 3 {
-			return errors.New("多边形至少三个顶点")
-		}
-	}
-	minx, miny := polys[0][0].X, polys[0][0].Y
-	maxx, maxy := minx, miny
+// BBox 返回全部多边形顶点在画布坐标系中的包围盒。
+func BBox(polys [][]geom.Point) (minx, miny, maxx, maxy float64) {
+	minx, miny = polys[0][0].X, polys[0][0].Y
+	maxx, maxy = minx, miny
 	for _, p := range polys {
 		for _, q := range p {
 			if q.X < minx {
@@ -47,6 +40,19 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 			}
 		}
 	}
+	return minx, miny, maxx, maxy
+}
+
+func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
+	if supersample < 1 {
+		return errors.New("supersample 必须为正")
+	}
+	for _, p := range polys {
+		if len(p) < 3 {
+			return errors.New("多边形至少三个顶点")
+		}
+	}
+	minx, miny, maxx, maxy := BBox(polys)
 	spanx, spany := maxx-minx, maxy-miny
 	if spanx == 0 {
 		spanx = 1
