@@ -3,10 +3,36 @@ package raster
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 
 	"vecgo/geom"
 )
+
+// 单个图形校验失败时使用的哨兵错误。
+var (
+	ErrPolygonTooFewPoints = errors.New("多边形至少三个顶点")
+	ErrInvalidCoordinate   = errors.New("多边形坐标非法（NaN/Inf）")
+)
+
+// Skipped 记录一个被跳过的图形：Index 为其在输入场景中的编号（从 0 起），
+// Reason 为跳过原因。
+type Skipped struct {
+	Index  int
+	Reason string
+}
+
+// SkippedList 按编号升序排列（构造时即按输入顺序追加）。
+type SkippedList []Skipped
+
+// IDs 返回升序的被跳过图形编号，供脚本直接读取。
+func (l SkippedList) IDs() []int {
+	ids := make([]int, len(l))
+	for i, s := range l {
+		ids[i] = s.Index
+	}
+	return ids
+}
 
 type Image struct {
 	W, H int
@@ -20,15 +46,61 @@ func New(w, h int) (*Image, error) {
 	return &Image{W: w, H: h, Pix: make([]uint8, w*h)}, nil
 }
 
+// Fill 以传统整帧事务方式光栅化：任一图形不合法即返回错误，整帧无产出。
+// 行为与加入失败隔离之前完全一致。
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 	if supersample < 1 {
 		return errors.New("supersample 必须为正")
 	}
 	for _, p := range polys {
 		if len(p) < 3 {
-			return errors.New("多边形至少三个顶点")
+			return ErrPolygonTooFewPoints
 		}
 	}
+	im.rasterize(polys, supersample)
+	return nil
+}
+
+// FillIsolated 开启失败隔离：逐个图形校验，非法图形只跳过自身并记录编号，
+// 其余图形照常绘制。全部图形都被跳过时返回一张全黑图（已无图形可画），
+// 不视为错误。返回的 SkippedList 按编号升序。
+func (im *Image) FillIsolated(polys [][]geom.Point, supersample int) (SkippedList, error) {
+	if supersample < 1 {
+		return nil, errors.New("supersample 必须为正")
+	}
+	skipped := SkippedList{}
+	valid := make([][]geom.Point, 0, len(polys))
+	for i, p := range polys {
+		if err := validatePolygon(p); err != nil {
+			skipped = append(skipped, Skipped{Index: i, Reason: err.Error()})
+			continue
+		}
+		valid = append(valid, p)
+	}
+	if len(valid) > 0 {
+		im.rasterize(valid, supersample)
+	}
+	return skipped, nil
+}
+
+// validatePolygon 校验单个图形：顶点数与坐标有界性。
+// 坐标含 NaN/Inf 时会污染整帧包围盒，必须在进入光栅化之前剔除。
+func validatePolygon(p []geom.Point) error {
+	if len(p) < 3 {
+		return ErrPolygonTooFewPoints
+	}
+	for _, q := range p {
+		if math.IsNaN(q.X) || math.IsNaN(q.Y) || math.IsInf(q.X, 0) || math.IsInf(q.Y, 0) {
+			return ErrInvalidCoordinate
+		}
+	}
+	return nil
+}
+
+// rasterize 是 Fill 与 FillIsolated 共用的光栅化核心，调用方须保证
+// polys 非空且每个图形都通过 validatePolygon。两条路径调用同一函数，
+// 因此对同一组合法图形保证逐像素相同。
+func (im *Image) rasterize(polys [][]geom.Point, supersample int) {
 	minx, miny := polys[0][0].X, polys[0][0].Y
 	maxx, maxy := minx, miny
 	for _, p := range polys {
@@ -73,7 +145,6 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 			im.Pix[row*im.W+col] = uint8(255 * hit / den)
 		}
 	}
-	return nil
 }
 
 func (im *Image) SavePGM(path string) error {
