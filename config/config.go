@@ -19,28 +19,28 @@ func Default() Config {
 
 func (c Config) Validate() error {
 	if c.Width <= 0 || c.Width > 4096 {
-		return fmt.Errorf("width 超出范围: %d", c.Width)
+		return fmt.Errorf("config: width 超出范围: %d", c.Width)
 	}
 	if c.Height <= 0 || c.Height > 4096 {
-		return fmt.Errorf("height 超出范围: %d", c.Height)
+		return fmt.Errorf("config: height 超出范围: %d", c.Height)
 	}
 	if c.Scale <= 0 || c.Scale > 100 {
-		return fmt.Errorf("scale 超出范围: %v", c.Scale)
+		return fmt.Errorf("config: scale 超出范围: %v", c.Scale)
 	}
 	if c.Supersample < 1 || c.Supersample > 8 {
-		return fmt.Errorf("supersample 超出范围: %d", c.Supersample)
+		return fmt.Errorf("config: supersample 超出范围: %d", c.Supersample)
 	}
 	if c.Gamma < 0.1 || c.Gamma > 10 {
-		return fmt.Errorf("gamma 超出范围: %v", c.Gamma)
+		return fmt.Errorf("config: gamma 超出范围: %v", c.Gamma)
 	}
 	if c.Blur < 0 || c.Blur > 16 {
-		return fmt.Errorf("blur 超出范围: %d", c.Blur)
+		return fmt.Errorf("config: blur 超出范围: %d", c.Blur)
 	}
 	if c.Shading != "flat" && c.Shading != "gradient" {
-		return fmt.Errorf("shading 非法: %s", c.Shading)
+		return fmt.Errorf("config: shading 非法: %s", c.Shading)
 	}
 	if c.Output == "" {
-		return fmt.Errorf("output 不能为空")
+		return fmt.Errorf("config: output 不能为空")
 	}
 	return nil
 }
