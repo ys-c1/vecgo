@@ -20,6 +20,18 @@ func Gamma(im *raster.Image, gamma float64) error {
 	return nil
 }
 
+// LiftAt 返回伽马在入射归一化峰值 x 处的真实有效灰度系数, 与 Gamma 内部
+// LUT 的取整、近似实现完全一致, 供预算表把实测消耗与分配系数对账。
+// 它只查询、不改动伽马的触发行为; x<=0 时无信号可提亮, 系数记 1。
+func LiftAt(x, gamma float64) float64 {
+	if x <= 0 {
+		return 1.0
+	}
+	in := uint8(x*255 + 0.5)
+	out := uint8(255 * pow(float64(in)/255, 1/gamma))
+	return float64(out) / float64(in)
+}
+
 func Blur(im *raster.Image, radius int) (*raster.Image, error) {
 	if radius < 0 {
 		return nil, errors.New("blur 不能为负")

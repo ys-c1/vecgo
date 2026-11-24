@@ -9,12 +9,13 @@ type Config struct {
 	Supersample   int
 	Shading       string
 	Gamma         float64
+	Gain          float64 // 灰度域增益请求, 实际下发系数由 budget 统一分配
 	Blur          int
 	Output        string
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Gain: 1, Blur: 0, Output: "out.pgm"}
 }
 
 func (c Config) Validate() error {
@@ -32,6 +33,9 @@ func (c Config) Validate() error {
 	}
 	if c.Gamma < 0.1 || c.Gamma > 10 {
 		return fmt.Errorf("gamma 超出范围: %v", c.Gamma)
+	}
+	if c.Gain <= 0 || c.Gain > 10 {
+		return fmt.Errorf("gain 超出范围: %v", c.Gain)
 	}
 	if c.Blur < 0 || c.Blur > 16 {
 		return fmt.Errorf("blur 超出范围: %d", c.Blur)

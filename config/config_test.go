@@ -23,3 +23,13 @@ func TestBadShading(t *testing.T) {
 		t.Fatal("非法着色模式应报错")
 	}
 }
+
+func TestBadGain(t *testing.T) {
+	for _, g := range []float64{0, -1, 11} {
+		c := Default()
+		c.Gain = g
+		if err := c.Validate(); err == nil {
+			t.Fatalf("gain=%v 应报错", g)
+		}
+	}
+}
