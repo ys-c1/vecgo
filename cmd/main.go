@@ -24,5 +24,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "导出失败:", err)
 		os.Exit(2)
 	}
-	fmt.Printf("on=%d size=%dx%d\n", im.CountOn(128), im.W, im.H)
+	on, err := im.CountOn(128)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "统计失败:", err)
+		os.Exit(3)
+	}
+	fmt.Printf("on=%d size=%dx%d\n", on, im.W, im.H)
 }

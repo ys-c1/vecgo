@@ -1,14 +1,18 @@
 package post
 
 import (
-	"errors"
-
+	"vecgo/param"
 	"vecgo/raster"
 )
 
+// Gamma 对画布做伽马校正。gamma 须是 [0.1, 10] 内的有限数，画布须合法，
+// 否则返回 *param.Error，字段如 post.Gamma.gamma。
 func Gamma(im *raster.Image, gamma float64) error {
-	if gamma < 0.1 || gamma > 10 {
-		return errors.New("gamma 超出范围")
+	if err := validate("post.Gamma", im); err != nil {
+		return err
+	}
+	if err := param.FloatIn("post.Gamma.gamma", gamma, param.GammaMin, param.GammaMax); err != nil {
+		return err
 	}
 	var table [256]uint8
 	for i := 0; i < 256; i++ {
@@ -20,16 +24,23 @@ func Gamma(im *raster.Image, gamma float64) error {
 	return nil
 }
 
+// Blur 做盒式模糊并返回新画布。radius 须在 [0, 16]，画布须合法，否则返回
+// *param.Error，字段如 post.Blur.radius。
 func Blur(im *raster.Image, radius int) (*raster.Image, error) {
-	if radius < 0 {
-		return nil, errors.New("blur 不能为负")
+	if err := validate("post.Blur", im); err != nil {
+		return nil, err
+	}
+	if err := param.IntIn("post.Blur.radius", radius, param.BlurMin, param.BlurMax); err != nil {
+		return nil, err
+	}
+	out, err := raster.New(im.W, im.H)
+	if err != nil {
+		return nil, err
 	}
 	if radius == 0 {
-		out, _ := raster.New(im.W, im.H)
 		copy(out.Pix, im.Pix)
 		return out, nil
 	}
-	out, _ := raster.New(im.W, im.H)
 	for y := 0; y < im.H; y++ {
 		for x := 0; x < im.W; x++ {
 			sum, count := 0, 0
@@ -46,6 +57,10 @@ func Blur(im *raster.Image, radius int) (*raster.Image, error) {
 		}
 	}
 	return out, nil
+}
+
+func validate(entry string, im *raster.Image) error {
+	return raster.ValidateImage(entry, im)
 }
 
 func pow(a, b float64) float64 {

@@ -1,6 +1,6 @@
 package config
 
-import "fmt"
+import "vecgo/param"
 
 type Config struct {
 	Width, Height int
@@ -17,30 +17,19 @@ func Default() Config {
 	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
 }
 
+// Validate 校验整份配置。所有字段的边界都来自 param 包，与各包内 API 的校验
+// 共用同一套口径；出错时返回 *param.Error（多处非法时为 *param.ErrorList），
+// Field 指明 config.<字段>。非法值只报错，不夹取、不兜底、不忽略。
 func (c Config) Validate() error {
-	if c.Width <= 0 || c.Width > 4096 {
-		return fmt.Errorf("width 超出范围: %d", c.Width)
-	}
-	if c.Height <= 0 || c.Height > 4096 {
-		return fmt.Errorf("height 超出范围: %d", c.Height)
-	}
-	if c.Scale <= 0 || c.Scale > 100 {
-		return fmt.Errorf("scale 超出范围: %v", c.Scale)
-	}
-	if c.Supersample < 1 || c.Supersample > 8 {
-		return fmt.Errorf("supersample 超出范围: %d", c.Supersample)
-	}
-	if c.Gamma < 0.1 || c.Gamma > 10 {
-		return fmt.Errorf("gamma 超出范围: %v", c.Gamma)
-	}
-	if c.Blur < 0 || c.Blur > 16 {
-		return fmt.Errorf("blur 超出范围: %d", c.Blur)
-	}
-	if c.Shading != "flat" && c.Shading != "gradient" {
-		return fmt.Errorf("shading 非法: %s", c.Shading)
-	}
-	if c.Output == "" {
-		return fmt.Errorf("output 不能为空")
-	}
-	return nil
+	return param.All(
+		param.IntIn("config.Width", c.Width, param.SideMin, param.SideMax),
+		param.IntIn("config.Height", c.Height, param.SideMin, param.SideMax),
+		param.FloatInOpenLo("config.Scale", c.Scale, param.ScaleMin, param.ScaleMax),
+		param.Finite("config.Rotate", c.Rotate),
+		param.IntIn("config.Supersample", c.Supersample, param.SupersampleMin, param.SupersampleMax),
+		param.Choice("config.Shading", c.Shading, param.ShadingModes),
+		param.FloatIn("config.Gamma", c.Gamma, param.GammaMin, param.GammaMax),
+		param.IntIn("config.Blur", c.Blur, param.BlurMin, param.BlurMax),
+		param.NonEmpty("config.Output", c.Output),
+	)
 }
