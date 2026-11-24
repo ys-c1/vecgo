@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vecgo 覆盖率采样停点分析</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --series-1: #2a78d6;   /* 64x64 画幅 */
+    --series-2: #eb6834;   /* 256x256 画幅 */
+    --accent: #2a78d6;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --wash: rgba(42,120,214,0.10);
+    --good: #006300;
+    --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .viz-root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface-1: #1a1a19;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --accent: #3987e5;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255,255,255,0.10);
+      --wash: rgba(57,135,229,0.14);
+      --good: #0ca30c;
+      --critical: #e66767;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --accent: #3987e5;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --wash: rgba(57,135,229,0.14);
+    --good: #0ca30c;
+    --critical: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .viz-root { max-width: 1080px; margin: 0 auto; padding: 32px 28px 64px; }
+  header h1 { font-size: 24px; margin: 0 0 6px; font-weight: 650; }
+  header .sub { color: var(--text-secondary); margin: 0 0 4px; }
+  header .meta { color: var(--text-muted); font-size: 12.5px; }
+  .theme-toggle {
+    float: right; font: inherit; font-size: 12.5px; color: var(--text-secondary);
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 12px; cursor: pointer;
+  }
+  section { margin-top: 34px; }
+  h2 { font-size: 17px; font-weight: 650; margin: 0 0 4px; }
+  h3 { font-size: 14.5px; font-weight: 650; margin: 20px 0 8px; color: var(--text-secondary); }
+  p.note { color: var(--text-secondary); margin: 6px 0 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-top: 16px; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .tile .label { color: var(--text-secondary); font-size: 12.5px; margin-bottom: 6px; }
+  .tile .value { font-size: 30px; font-weight: 650; }
+  .tile .delta { font-size: 12.5px; margin-top: 4px; color: var(--text-secondary); }
+  .tile .delta.good { color: var(--good); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 18px 14px; margin-top: 16px;
+  }
+  .card .title { font-weight: 650; font-size: 14px; }
+  .card .desc { color: var(--text-secondary); font-size: 12.5px; margin: 2px 0 10px; }
+  .chart-wrap { position: relative; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 6px 0 0; font-size: 12.5px; color: var(--text-secondary); }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .legend .swatch.sq { height: 12px; width: 12px; border-radius: 3px; }
+  .legend .swatch.dash { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px); height: 2px; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 12px; min-width: 150px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.14); font-size: 12.5px;
+  }
+  .tooltip .tt-title { color: var(--text-muted); margin-bottom: 5px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+  .tooltip .tt-key { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+  .tooltip .tt-name { color: var(--text-secondary); flex: 1; }
+  .tooltip .tt-val { font-weight: 650; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12.5px; }
+  th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--axis); }
+  tbody tr:hover { background: var(--wash); }
+  caption { text-align: left; color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
+  .scroll { overflow-x: auto; }
+  .callout {
+    border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    background: var(--surface-1); border-radius: 10px; padding: 14px 18px; margin-top: 16px;
+  }
+  .callout.warn { border-left-color: var(--critical); }
+  .callout p { margin: 6px 0; }
+  .callout ul { margin: 6px 0; padding-left: 20px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+    background: var(--wash); padding: 1px 5px; border-radius: 5px; }
+  .formula { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--text-secondary); }
+  .table-toggle {
+    font: inherit; font-size: 12px; color: var(--text-secondary); background: none;
+    border: 1px solid var(--border); border-radius: 7px; padding: 3px 10px; cursor: pointer; margin-top: 8px;
+  }
+  .table-view { display: none; }
+  .table-view.open { display: block; }
+  .axis-text { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .axis-title { fill: var(--text-secondary); font-size: 12px; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .axis-line { stroke: var(--axis); stroke-width: 1; }
+  .ref-line { stroke: var(--text-muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .ref-label { fill: var(--text-muted); font-size: 11px; }
+  .series-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .dot { stroke: var(--surface-1); stroke-width: 2; }
+  .crosshair { stroke: var(--axis); stroke-width: 1; display: none; }
+  .hit-dot { display: none; stroke: var(--surface-1); stroke-width: 2; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <button class="theme-toggle" id="themeToggle" type="button">切换深色</button>
+  <header>
+    <h1>覆盖率采样的停点分析：样本数该在何处停</h1>
+    <p class="sub">同一几何模型（旋转 30° 的 10×10 方形）在两个画幅上的蒙特卡洛覆盖率采样实验</p>
+    <p class="meta">数据来源：<code>cmd/exp</code>，每点 40 次独立重复，计时取 15 次中位数 · 随机源为固定种子 splitmix64，可复现</p>
+  </header>
+
+  <section id="verdict">
+    <h2>结论先行</h2>
+    <div class="callout">
+      <p><strong>1. 生产代码里没有"偷偷加样本"的状态。</strong>当前 <code>raster.Image.Fill</code> 是确定性网格超采样，采样数只来自配置项 <code>Supersample</code>（1–8），渲染函数内不存在累加/持久状态。漂移检查（下图④）证实：固定 <code>s=2</code> 连跑 11 次，耗时恒定在 ~2.7 ms；只有当外部把 <code>s</code> 从 2 逐次抬到 8 时，耗时才随 <code>s²</code> 从 2.6 ms 涨到 41.8 ms。客户看到的"一次比一次慢"对应的是<strong>调用方传入的采样参数在逐次变大</strong>，不是渲染器内部行为。</p>
+      <p><strong>2. 停点只由边缘几何决定，与画幅无关。</strong>覆盖率方差 v(n)=C/n，其中 C = mean p(1−p)，只含边缘像素的覆盖率分布。两个画幅的 C 几乎相等（0.1259 vs 0.1273，差 1.1%），按"边际收益跌破首样本 1%"反算的停点 <code>n* = 1/√ε = 10</code> 对两个画幅是同一个数；离散网格上两者都在 n=12 首次实测越线。</p>
+      <p><strong>3. 越过停点的代价随画幅放大。</strong>每边缘像素的采样成本与画幅无关，但边缘像素数随线性尺寸增长（245 → 975，约 4 倍）。同样把样本从 10 加到 256：64 画幅多花 0.87 ms，256 画幅多花 3.61 ms——<strong>停点取错时，画幅越大绝对损耗越大</strong>（耗时曲线③）。</p>
+    </div>
+    <div class="tiles">
+      <div class="tile">
+        <div class="label">理论停点 n*（ε = 1%，两画幅共用）</div>
+        <div class="value">10</div>
+        <div class="delta good">反算式 n* = 1/√ε，不含画幅项</div>
+      </div>
+      <div class="tile">
+        <div class="label">经验越线网格点（两画幅一致）</div>
+        <div class="value">n = 12</div>
+        <div class="delta">n=10 处边际收益仍为首样本 ~1.2%，n=12 处 &lt;1%</div>
+      </div>
+      <div class="tile">
+        <div class="label">停点处边际收益（n=10，64 / 256）</div>
+        <div class="value">1.18% / 1.34%</div>
+        <div class="delta">相对首样本边际收益</div>
+      </div>
+      <div class="tile">
+        <div class="label">漂移检查：固定 s=2 连跑 11 次</div>
+        <div class="value">2.7 ms</div>
+        <div class="delta good">极差 0.22 ms，无上升趋势</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="charts">
+    <h2>图表</h2>
+
+    <div class="card">
+      <div class="title">① 覆盖率方差随样本数衰减（对数纵轴）</div>
+      <div class="desc">点为 40 次重复的经验 MSE（对 65536 样本基准覆盖率），虚线为理论 C/n；两画幅曲线几乎重合，验证 C 与画幅无关。</div>
+      <div class="chart-wrap" id="chart1"></div>
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-1)"></span>64×64 经验</span>
+        <span class="key"><span class="swatch dash" style="color:var(--series-1)"></span>64×64 理论 C/n</span>
+        <span class="key"><span class="swatch" style="background:var(--series-2)"></span>256×256 经验</span>
+        <span class="key"><span class="swatch dash" style="color:var(--series-2)"></span>256×256 理论 C/n</span>
+      </div>
+      <button class="table-toggle" type="button" data-target="tbl1">显示表格视图</button>
+      <div class="table-view scroll" id="tbl1"></div>
+    </div>
+
+    <div class="card">
+      <div class="title">② 每加一个样本的边际收益（对数纵轴）与停点</div>
+      <div class="desc">边际收益 = 相邻网格点间每样本的方差下降；灰色点线为首样本边际收益的 1% 阈值，竖线为理论停点 n*=10。两画幅在同一位置越线。</div>
+      <div class="chart-wrap" id="chart2"></div>
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-1)"></span>64×64 边际收益</span>
+        <span class="key"><span class="swatch" style="background:var(--series-2)"></span>256×256 边际收益</span>
+      </div>
+      <button class="table-toggle" type="button" data-target="tbl2">显示表格视图</button>
+      <div class="table-view scroll" id="tbl2"></div>
+    </div>
+
+    <div class="card">
+      <div class="title">③ 单次渲染中位耗时随样本数变化——停点取错为何画幅越大越慢</div>
+      <div class="desc">耗时随 n 线性增长；256 画幅的边缘像素是 64 画幅的 3.98 倍，整条曲线始终约 4 倍高。竖线右侧即越过停点的区间，绝对耗时差随 n 持续拉大。</div>
+      <div class="chart-wrap" id="chart3"></div>
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-1)"></span>64×64（边缘像素 245）</span>
+        <span class="key"><span class="swatch" style="background:var(--series-2)"></span>256×256（边缘像素 975）</span>
+      </div>
+      <button class="table-toggle" type="button" data-target="tbl3">显示表格视图</button>
+      <div class="table-view scroll" id="tbl3"></div>
+    </div>
+
+    <div class="card">
+      <div class="title">④ 生产代码漂移检查：固定超采样 vs 逐次加大超采样（256×256）</div>
+      <div class="desc">固定组始终 supersample=2；递增组第 6 次起 s=3,4,…,8。蓝线平、橙线按 s² 上翘——变慢只可能来自传入的采样参数变大。</div>
+      <div class="chart-wrap" id="chart4"></div>
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--series-1)"></span>固定 s=2</span>
+        <span class="key"><span class="swatch sq" style="background:var(--series-2)"></span>递增 s=2→8</span>
+      </div>
+      <button class="table-toggle" type="button" data-target="tbl4">显示表格视图</button>
+      <div class="table-view scroll" id="tbl4"></div>
+    </div>
+  </section>
+
+  <section id="combined-table">
+    <h2>两个画幅的方差与耗时（同一张表）</h2>
+    <p class="note">边际收益占比 = 当前每样本方差下降 ÷ 首样本边际收益；停点行（n=10）已高亮。</p>
+    <div class="card scroll">
+      <table id="mainTable">
+        <caption>每个 n 一行，两个画幅的经验方差、边际收益占比、中位耗时并列</caption>
+        <thead><tr id="mainHead"></tr></thead>
+        <tbody id="mainBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="overshoot">
+    <h2>越过停点：多花的样本换来多少方差降幅</h2>
+    <div class="grid2">
+      <div class="card scroll">
+        <div class="title">64×64（基准 n*=10，停点耗时 0.038 ms）</div>
+        <table id="os64"></table>
+      </div>
+      <div class="card scroll">
+        <div class="title">256×256（基准 n*=10，停点耗时 0.151 ms）</div>
+        <table id="os256"></table>
+      </div>
+    </div>
+    <div class="callout warn">
+      <p><strong>边际收益的尾部极平：</strong>n 从 128 加到 256（再投 128 个样本，翻倍），两个画幅的方差都只再降约 50%——而 n 从 1 到 10 只用 10 个样本就把方差压掉了 90%。最后 246 个样本（占总样本 96%）换来的是从 0.0126 到 0.0005 的绝对方差改善，收益密度不足停点前的百分之一。</p>
+    </div>
+  </section>
+
+  <section id="method">
+    <h2>方法与口径</h2>
+    <div class="card">
+      <h3>停点的反算</h3>
+      <p class="formula">单个边缘像素覆盖率估计：p̂ = (1/n)·Σ Xᵢ，Xᵢ ∈ {0,1}，故 Var(p̂) = p(1−p)/n</p>
+      <p class="formula">边缘像素平均方差：v(n) = C/n，C = mean[p(1−p)]，只由边缘几何决定</p>
+      <p class="formula">每样本边际收益（连续近似）：|dv/dn| = C/n²；首样本量级 = C</p>
+      <p class="formula">停点规则 C/n² ≤ ε·C ⇒ <strong>n* = 1/√ε</strong>，C 被约掉——画幅项不出现</p>
+      <p class="note">取 ε = 0.01 得 n* = 10。离散网格上用相邻点的实测差商判断，两画幅均在 n=12 首次满足（n=10 的差商含 n=8→10 的区间平均，略高于阈值，属网格粒度效应）。</p>
+      <h3>为什么 C 与画幅无关</h3>
+      <p class="note">同一世界坐标的模型映射到不同画幅时，边缘像素的覆盖率 p 是"边缘穿过像素的几何比例"。只要边缘相对像素网格的朝向分布不变（本实验为同模型、像素宽高比一致），p 的分布就不变，mean p(1−p) 随之不变；画幅改变的只是边缘像素的<strong>数量</strong>（随线性尺寸增长），不是单个像素的方差。实测 C₆₄ = 0.12592、C₂₅₆ = 0.12729，相对差 1.1%。</p>
+      <h3>实验边界</h3>
+      <ul class="note">
+        <li>生产 <code>Fill</code> 是规则网格超采样（无随机性），方差分析在同口径的逐像素独立蒙特卡洛采样器上进行；两者单样本成本结构相同（每样本一次 <code>geom.Inside</code>），停点结论可直接迁移到超采样阶数的选择。</li>
+        <li>真实覆盖率基准用 65536 样本估计；经验 MSE 与理论 C/n 的最大相对偏差 &lt;5%。</li>
+        <li>计时在同一机器单次会话内完成，已做预热并取中位数；绝对毫秒数随机器变化，但线性关系与画幅间倍数稳定。</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+const DATA = __DATA__;
+const SIZES = [64, 256];
+const COLORS = {64: "var(--series-1)", 256: "var(--series-2)"};
+const NAMES = {64: "64×64", 256: "256×256"};
+
+// ---------- 主题 ----------
+const toggle = document.getElementById("themeToggle");
+toggle.addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.getAttribute("data-theme") === "dark";
+  root.setAttribute("data-theme", dark ? "light" : "dark");
+  toggle.textContent = dark ? "切换深色" : "切换浅色";
+});
+
+// ---------- 数字格式 ----------
+function fmt(v, digits) {
+  if (v === 0) return "0";
+  const abs = Math.abs(v);
+  if (abs >= 100) return v.toFixed(0);
+  if (abs >= 10) return v.toFixed(1);
+  if (abs >= 1) return v.toFixed(digits ?? 2);
+  if (abs >= 0.01) return v.toFixed(3);
+  return v.toExponential(2);
+}
+function fmtPct(v) { return v.toFixed(2) + "%"; }
+
+// ---------- 通用 SVG 折线图 ----------
+const W = 500, H = 300, M = {top: 18, right: 22, bottom: 46, left: 62};
+const PW = W - M.left - M.right, PH = H - M.top - M.bottom;
+
+function logTicks(min, max) {
+  const ticks = [];
+  let p = Math.floor(Math.log10(min));
+  while (Math.pow(10, p) <= max * 1.0001) {
+    const v = Math.pow(10, p);
+    if (v >= min * 0.999) ticks.push(v);
+    p++;
+  }
+  return ticks;
+}
+function linearTicks(min, max, count) {
+  const ticks = [];
+  const span = max - min;
+  const raw = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+  for (let v = Math.ceil(min / step) * step; v <= max * 1.0001; v += step) ticks.push(v);
+  return ticks;
+}
+
+function makeChart(elId, cfg) {
+  const wrap = document.getElementById(elId);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("class", "chart");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", cfg.aria);
+  wrap.appendChild(svg);
+
+  const xs = cfg.xs;
+  const xMin = xs[0], xMax = xs[xs.length - 1];
+  const allY = cfg.series.flatMap(s => s.ys).concat(cfg.refY ?? []);
+  const yMin = cfg.log ? Math.min(...allY) * 0.85 : Math.min(0, ...allY);
+  const yMax = Math.max(...allY) * 1.06;
+
+  const xScale = x => M.left + (x - xMin) / (xMax - xMin) * PW;
+  const yScale = cfg.log
+    ? y => M.top + PH - (Math.log10(y) - Math.log10(yMin)) / (Math.log10(yMax) - Math.log10(yMin)) * PH
+    : y => M.top + PH - (y - yMin) / (yMax - yMin) * PH;
+
+  // 网格 + Y 轴刻度
+  const yTicks = cfg.log ? logTicks(yMin, yMax) : linearTicks(yMin, yMax, 5);
+  for (const t of yTicks) {
+    const y = yScale(t);
+    line(svg, M.left, y, M.left + PW, y, "grid-line");
+    text(svg, M.left - 8, y + 3.5, cfg.log ? t.toExponential(0).replace("e+0", "e").replace("e0", "") : fmt(t), "axis-text", "end");
+  }
+  // X 轴刻度
+  const xTicks = xs.filter((_, i) => i % 2 === 0 || xs.length <= 8);
+  for (const t of xTicks) {
+    const x = xScale(t);
+    text(svg, x, M.top + PH + 18, String(t), "axis-text", "middle");
+  }
+  line(svg, M.left, M.top, M.left, M.top + PH, "axis-line");
+  line(svg, M.left, M.top + PH, M.left + PW, M.top + PH, "axis-line");
+  text(svg, M.left + PW / 2, H - 8, cfg.xTitle, "axis-title", "middle");
+  const yt = text(svg, 15, M.top + PH / 2, cfg.yTitle, "axis-title", "middle");
+  yt.setAttribute("transform", `rotate(-90 15 ${M.top + PH / 2})`);
+
+  // 参考线
+  for (const ref of (cfg.refs ?? [])) {
+    if (ref.orientation === "h") {
+      const y = yScale(ref.value);
+      line(svg, M.left, y, M.left + PW, y, "ref-line");
+      text(svg, M.left + PW - 4, y - 5, ref.label, "ref-label", "end");
+    } else {
+      const x = xScale(ref.value);
+      line(svg, x, M.top, x, M.top + PH, "ref-line");
+      text(svg, x + 4, M.top + 12, ref.label, "ref-label", "start");
+    }
+  }
+
+  // 数据系列
+  for (const s of cfg.series) {
+    const d = s.ys.map((y, i) => `${i === 0 ? "M" : "L"}${xScale(xs[i]).toFixed(1)},${yScale(y).toFixed(1)}`).join("");
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "series-line");
+    path.setAttribute("stroke", s.color);
+    if (s.dashed) path.setAttribute("stroke-dasharray", "6 4");
+    svg.appendChild(path);
+    if (s.markers) {
+      s.ys.forEach((y, i) => {
+        const c = document.createElementNS(svgNS, "circle");
+        c.setAttribute("cx", xScale(xs[i])); c.setAttribute("cy", yScale(y));
+        c.setAttribute("r", s.markerSize ?? 4);
+        c.setAttribute("fill", s.color); c.setAttribute("class", "dot");
+        svg.appendChild(c);
+      });
+    }
+    if (s.squares) {
+      s.ys.forEach((y, i) => {
+        const r = 4.5, x = xScale(xs[i]) - r, yp = yScale(y) - r;
+        const rect = document.createElementNS(svgNS, "rect");
+        rect.setAttribute("x", x); rect.setAttribute("y", yp);
+        rect.setAttribute("width", r * 2); rect.setAttribute("height", r * 2);
+        rect.setAttribute("rx", 1.5);
+        rect.setAttribute("fill", s.color); rect.setAttribute("class", "dot");
+        svg.appendChild(rect);
+      });
+    }
+  }
+
+  // 十字线 + 命中点 + tooltip
+  const cross = document.createElementNS(svgNS, "line");
+  cross.setAttribute("class", "crosshair");
+  cross.setAttribute("y1", M.top); cross.setAttribute("y2", M.top + PH);
+  svg.appendChild(cross);
+  const hitDots = cfg.series.map(s => {
+    const c = document.createElementNS(svgNS, "circle");
+    c.setAttribute("r", 5); c.setAttribute("class", "hit-dot");
+    c.setAttribute("fill", s.color);
+    svg.appendChild(c);
+    return c;
+  });
+  const tip = document.createElement("div");
+  tip.className = "tooltip";
+  wrap.appendChild(tip);
+
+  const overlay = document.createElementNS(svgNS, "rect");
+  overlay.setAttribute("x", M.left); overlay.setAttribute("y", M.top);
+  overlay.setAttribute("width", PW); overlay.setAttribute("height", PH);
+  overlay.setAttribute("fill", "transparent");
+  svg.appendChild(overlay);
+
+  function show(clientX) {
+    const rect = svg.getBoundingClientRect();
+    const px = (clientX - rect.left) / rect.width * W;
+    let idx = 0, best = Infinity;
+    xs.forEach((x, i) => {
+      const d = Math.abs(xScale(x) - px);
+      if (d < best) { best = d; idx = i; }
+    });
+    const x = xScale(xs[idx]);
+    cross.setAttribute("x1", x); cross.setAttribute("x2", x);
+    cross.style.display = "block";
+    hitDots.forEach((c, si) => {
+      c.setAttribute("cx", x); c.setAttribute("cy", yScale(cfg.series[si].ys[idx]));
+      c.style.display = "block";
+    });
+    tip.replaceChildren();
+    const title = document.createElement("div");
+    title.className = "tt-title";
+    title.textContent = cfg.xLabel + " " + xs[idx];
+    tip.appendChild(title);
+    cfg.series.forEach((s, si) => {
+      const row = document.createElement("div"); row.className = "tt-row";
+      const key = document.createElement("span"); key.className = "tt-key";
+      key.style.background = s.color;
+      const name = document.createElement("span"); name.className = "tt-name";
+      name.textContent = s.name;
+      const val = document.createElement("span"); val.className = "tt-val";
+      val.textContent = s.fmt ? s.fmt(s.ys[idx]) : fmt(s.ys[idx]);
+      row.append(key, name, val);
+      tip.appendChild(row);
+    });
+    tip.style.display = "block";
+    const wrapRect = wrap.getBoundingClientRect();
+    let left = (x / W) * rect.width + 14;
+    if (left + tip.offsetWidth > wrapRect.width) left = (x / W) * rect.width - tip.offsetWidth - 14;
+    tip.style.left = left + "px";
+    tip.style.top = "12px";
+  }
+  function hide() {
+    cross.style.display = "none";
+    hitDots.forEach(c => c.style.display = "none");
+    tip.style.display = "none";
+  }
+  overlay.addEventListener("pointermove", e => show(e.clientX));
+  overlay.addEventListener("pointerleave", hide);
+  overlay.setAttribute("tabindex", "0");
+  overlay.addEventListener("focus", () => show(rectCenter()));
+  overlay.addEventListener("blur", hide);
+  overlay.addEventListener("keydown", e => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    focusIdx = Math.max(0, Math.min(xs.length - 1, focusIdx + (e.key === "ArrowRight" ? 1 : -1)));
+    const rect = svg.getBoundingClientRect();
+    show(rect.left + (xScale(xs[focusIdx]) / W) * rect.width);
+  });
+  let focusIdx = 0;
+  function rectCenter() {
+    const rect = svg.getBoundingClientRect();
+    return rect.left + (M.left + PW / 2) / W * rect.width;
+  }
+}
+function line(svg, x1, y1, x2, y2, cls) {
+  const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+  l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+  l.setAttribute("class", cls);
+  svg.appendChild(l);
+}
+function text(svg, x, y, str, cls, anchor) {
+  const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  t.setAttribute("x", x); t.setAttribute("y", y);
+  t.setAttribute("class", cls); t.setAttribute("text-anchor", anchor || "start");
+  t.textContent = str;
+  svg.appendChild(t);
+  return t;
+}
+
+// ---------- 图表数据 ----------
+const ns = DATA.series["64"].ns;
+
+makeChart("chart1", {
+  aria: "覆盖率方差随样本数衰减，双画幅经验与理论曲线",
+  xs: ns, log: true, xTitle: "每像素样本数 n", yTitle: "边缘像素 MSE（对数）",
+  xLabel: "n =",
+  refs: [{orientation: "v", value: DATA.nStar, label: "n*=10"}],
+  series: [
+    {name: "64 经验", color: "var(--series-1)", ys: DATA.series["64"].emp, markers: true, fmt: v => v.toExponential(3)},
+    {name: "64 理论", color: "var(--series-1)", ys: DATA.series["64"].theo, dashed: true, fmt: v => v.toExponential(3)},
+    {name: "256 经验", color: "var(--series-2)", ys: DATA.series["256"].emp, markers: true, fmt: v => v.toExponential(3)},
+    {name: "256 理论", color: "var(--series-2)", ys: DATA.series["256"].theo, dashed: true, fmt: v => v.toExponential(3)},
+  ],
+});
+
+const epsLine = 0.01 * DATA.series["64"].marginal[0];
+makeChart("chart2", {
+  aria: "每样本边际收益与百分之一停点阈值",
+  xs: ns, log: true, xTitle: "每像素样本数 n", yTitle: "每样本边际收益（对数）",
+  xLabel: "n =",
+  refs: [
+    {orientation: "h", value: epsLine, label: "阈值 ε = 首样本的 1%"},
+    {orientation: "v", value: DATA.nStar, label: "n*=10"},
+  ],
+  series: [
+    {name: "64 边际收益", color: "var(--series-1)", ys: DATA.series["64"].marginal, markers: true, fmt: v => v.toExponential(2)},
+    {name: "256 边际收益", color: "var(--series-2)", ys: DATA.series["256"].marginal, markers: true, fmt: v => v.toExponential(2)},
+  ],
+});
+
+makeChart("chart3", {
+  aria: "单次渲染中位耗时随样本数线性增长，256 画幅约为 64 画幅四倍",
+  xs: ns, log: false, xTitle: "每像素样本数 n", yTitle: "中位耗时 (ms)",
+  xLabel: "n =",
+  refs: [{orientation: "v", value: DATA.nStar, label: "n*=10"}],
+  series: [
+    {name: "64 耗时", color: "var(--series-1)", ys: DATA.series["64"].time, markers: true, fmt: v => v.toFixed(3) + " ms"},
+    {name: "256 耗时", color: "var(--series-2)", ys: DATA.series["256"].time, markers: true, fmt: v => v.toFixed(3) + " ms"},
+  ],
+});
+
+makeChart("chart4", {
+  aria: "生产渲染器漂移检查，固定超采样耗时平稳，递增超采样按平方增长",
+  xs: DATA.drift.calls, log: false, xTitle: "渲染次序", yTitle: "耗时 (ms)",
+  xLabel: "第",
+  series: [
+    {name: "固定 s=2", color: "var(--series-1)", ys: DATA.drift.fixed, markers: true, fmt: v => v.toFixed(2) + " ms"},
+    {name: "递增 s=2→8", color: "var(--series-2)", ys: DATA.drift.ramped, squares: true, fmt: v => v.toFixed(2) + " ms"},
+  ],
+});
+
+// ---------- 表格视图 ----------
+function buildTable(elId, columns, rows) {
+  const el = document.getElementById(elId);
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  for (const c of columns) {
+    const th = document.createElement("th");
+    th.textContent = c.label;
+    hr.appendChild(th);
+  }
+  thead.appendChild(hr);
+  const body = document.createElement("tbody");
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    for (const c of columns) {
+      const td = document.createElement("td");
+      td.textContent = c.fmt ? c.fmt(r[c.key]) : String(r[c.key]);
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  }
+  table.append(thead, body);
+  el.appendChild(table);
+}
+buildTable("tbl1", [
+  {label: "n", key: "n"},
+  {label: "64 经验方差", key: "e64", fmt: v => v.toExponential(3)},
+  {label: "64 理论 C/n", key: "t64", fmt: v => v.toExponential(3)},
+  {label: "256 经验方差", key: "e256", fmt: v => v.toExponential(3)},
+  {label: "256 理论 C/n", key: "t256", fmt: v => v.toExponential(3)},
+], ns.map((n, i) => ({n, e64: DATA.series["64"].emp[i], t64: DATA.series["64"].theo[i], e256: DATA.series["256"].emp[i], t256: DATA.series["256"].theo[i]})));
+
+buildTable("tbl2", [
+  {label: "n", key: "n"},
+  {label: "64 边际收益", key: "m64", fmt: v => v.toExponential(2)},
+  {label: "64 占首样本", key: "r64", fmt: v => v.toFixed(2) + "%"},
+  {label: "256 边际收益", key: "m256", fmt: v => v.toExponential(2)},
+  {label: "256 占首样本", key: "r256", fmt: v => v.toFixed(2) + "%"},
+], ns.map((n, i) => ({n, m64: DATA.series["64"].marginal[i], r64: DATA.series["64"].marginalRatio[i], m256: DATA.series["256"].marginal[i], r256: DATA.series["256"].marginalRatio[i]})));
+
+buildTable("tbl3", [
+  {label: "n", key: "n"},
+  {label: "64 耗时 (ms)", key: "t64", fmt: v => v.toFixed(3)},
+  {label: "256 耗时 (ms)", key: "t256", fmt: v => v.toFixed(3)},
+  {label: "256/64 倍数", key: "ratio", fmt: v => v.toFixed(2) + "×"},
+], ns.map((n, i) => ({n, t64: DATA.series["64"].time[i], t256: DATA.series["256"].time[i], ratio: DATA.series["256"].time[i] / DATA.series["64"].time[i]})));
+
+buildTable("tbl4", [
+  {label: "渲染次序", key: "call"},
+  {label: "固定 s=2 (ms)", key: "fixed", fmt: v => v.toFixed(2)},
+  {label: "递增组 s", key: "s"},
+  {label: "递增组耗时 (ms)", key: "ramped", fmt: v => v.toFixed(2)},
+], DATA.drift.calls.map((call, i) => ({call, fixed: DATA.drift.fixed[i], s: DATA.drift.rampedSuper[i], ramped: DATA.drift.ramped[i]})));
+
+document.querySelectorAll(".table-toggle").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const v = document.getElementById(btn.dataset.target);
+    const open = v.classList.toggle("open");
+    btn.textContent = open ? "收起表格视图" : "显示表格视图";
+  });
+});
+
+// ---------- 主合并表 ----------
+const head = document.getElementById("mainHead");
+const headCols = [
+  ["n", "样本数 n"],
+  ["s64_emp", "64 方差"], ["s64_ratio", "64 边际占比"], ["s64_time", "64 耗时 ms"],
+  ["s256_emp", "256 方差"], ["s256_ratio", "256 边际占比"], ["s256_time", "256 耗时 ms"],
+];
+for (const [, label] of headCols) {
+  const th = document.createElement("th");
+  th.textContent = label;
+  head.appendChild(th);
+}
+const body = document.getElementById("mainBody");
+for (const r of DATA.table) {
+  const tr = document.createElement("tr");
+  if (r.n === DATA.nStar) tr.style.background = "var(--wash)";
+  const cells = [
+    String(r.n),
+    r.s64_emp.toExponential(3), fmtPct(r.s64_ratio), r.s64_time.toFixed(3),
+    r.s256_emp.toExponential(3), fmtPct(r.s256_ratio), r.s256_time.toFixed(3),
+  ];
+  for (const c of cells) {
+    const td = document.createElement("td");
+    td.textContent = c;
+    tr.appendChild(td);
+  }
+  body.appendChild(tr);
+}
+
+// ---------- 越过停点表 ----------
+function buildOvershoot(elId, sizeKey, baseTime) {
+  const el = document.getElementById(elId);
+  const cols = [
+    {label: "样本数 n", key: "N"},
+    {label: "多花样本", key: "extra", fmt: v => "+" + v},
+    {label: "方差降幅（vs n*）", key: "drop", fmt: v => v.toFixed(1) + "%"},
+    {label: "耗时 (ms)", key: "time", fmt: v => v.toFixed(3)},
+    {label: "耗时增幅", key: "over", fmt: v => "+" + v.toFixed(0) + "%"},
+  ];
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  cols.forEach(c => { const th = document.createElement("th"); th.textContent = c.label; hr.appendChild(th); });
+  const tb = document.createElement("tbody");
+  for (const o of DATA.overshoot[sizeKey]) {
+    const row = {N: o.n, extra: o.extra_samples, drop: o.variance_drop_pct_vs_nstar, time: o.time_ms, over: o.time_overhead_pct_vs_nstar};
+    const tr = document.createElement("tr");
+    cols.forEach(c => {
+      const td = document.createElement("td");
+      td.textContent = c.fmt ? c.fmt(row[c.key]) : String(row[c.key]);
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  }
+  thead.appendChild(hr);
+  el.append(thead, tb);
+}
+buildOvershoot("os64", "64");
+buildOvershoot("os256", "256");
+</script>
+</body>
+</html>
