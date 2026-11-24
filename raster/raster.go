@@ -29,39 +29,16 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 			return errors.New("多边形至少三个顶点")
 		}
 	}
-	minx, miny := polys[0][0].X, polys[0][0].Y
-	maxx, maxy := minx, miny
-	for _, p := range polys {
-		for _, q := range p {
-			if q.X < minx {
-				minx = q.X
-			}
-			if q.X > maxx {
-				maxx = q.X
-			}
-			if q.Y < miny {
-				miny = q.Y
-			}
-			if q.Y > maxy {
-				maxy = q.Y
-			}
-		}
-	}
-	spanx, spany := maxx-minx, maxy-miny
-	if spanx == 0 {
-		spanx = 1
-	}
-	if spany == 0 {
-		spany = 1
-	}
+	m := NewMapping(polys)
 	den := supersample * supersample
 	for row := 0; row < im.H; row++ {
 		for col := 0; col < im.W; col++ {
 			hit := 0
 			for sj := 0; sj < supersample; sj++ {
 				for si := 0; si < supersample; si++ {
-					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
-					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
+					u := float64(col) + (float64(si)+0.5)/float64(supersample)
+					v := float64(row) + (float64(sj)+0.5)/float64(supersample)
+					px, py := m.PixelToWorld(im.W, im.H, u, v)
 					for _, p := range polys {
 						if geom.Inside(p, px, py) {
 							hit++

@@ -2,6 +2,7 @@ package pipe
 
 import (
 	"math"
+	"math/rand"
 
 	"vecgo/config"
 	"vecgo/geom"
@@ -15,8 +16,8 @@ func Transform(pts []geom.Point, scale, rotate float64) []geom.Point {
 	out := make([]geom.Point, len(pts))
 	for i, p := range pts {
 		out[i] = geom.Point{}
-		out[i].X = scale*(p.X*c-p.Y*s)
-		out[i].Y = scale*(p.X*s+p.Y*c)
+		out[i].X = scale * (p.X*c - p.Y*s)
+		out[i].Y = scale * (p.X*s + p.Y*c)
 	}
 	return out
 }
@@ -33,7 +34,13 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	for i, poly := range scene {
 		moved[i] = Transform(poly, cfg.Scale, cfg.Rotate)
 	}
-	if err := im.Fill(moved, cfg.Supersample); err != nil {
+	if cfg.Samples > 0 {
+		// 可配蒙特卡洛采样路径；固定种子保证同配置可复现。
+		rng := rand.New(rand.NewSource(cfg.Seed))
+		if err := im.FillRandom(moved, cfg.Samples, rng); err != nil {
+			return nil, err
+		}
+	} else if err := im.Fill(moved, cfg.Supersample); err != nil {
 		return nil, err
 	}
 	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {
