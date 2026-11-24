@@ -35,6 +35,104 @@ func Length(pts []Point) float64 {
 	return total
 }
 
+// SignedArea 按格林公式（鞋带公式）返回有向面积，顶点逆时针时为正。
+// 只对简单多边形（不自相交）有意义；自相交时结果是各环绕区域的代数面积之和。
+func SignedArea(poly []Point) float64 {
+	n := len(poly)
+	if n < 3 {
+		return 0
+	}
+	sum := 0.0
+	for i := 0; i < n; i++ {
+		a := poly[i]
+		b := poly[(i+1)%n]
+		sum += a.X*b.Y - b.X*a.Y
+	}
+	return sum / 2
+}
+
+// Area 返回简单多边形的面积（格林公式取绝对值）。
+func Area(poly []Point) float64 {
+	return math.Abs(SignedArea(poly))
+}
+
+// Perimeter 返回闭合多边形的周长，包含末点到首点的一条边。
+func Perimeter(poly []Point) float64 {
+	n := len(poly)
+	if n < 2 {
+		return 0
+	}
+	total := 0.0
+	for i := 0; i < n; i++ {
+		a := poly[i]
+		b := poly[(i+1)%n]
+		total += math.Hypot(b.X-a.X, b.Y-a.Y)
+	}
+	return total
+}
+
+// IsSimple 判断闭合多边形是否简单：无零长边、且任意两条不相邻的边都不相交。
+// 覆盖率加权填充依赖简单性，否则格林公式面积与像素覆盖面积不再一致。
+func IsSimple(poly []Point) bool {
+	n := len(poly)
+	if n < 3 {
+		return false
+	}
+	for i := 0; i < n; i++ {
+		if poly[i] == poly[(i+1)%n] {
+			return false
+		}
+	}
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			if j == i+1 || (i == 0 && j == n-1) {
+				continue
+			}
+			if segmentsCross(poly[i], poly[(i+1)%n], poly[j], poly[(j+1)%n]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func orient(a, b, c Point) float64 {
+	return (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
+}
+
+func onSegment(a, b, p Point) bool {
+	return math.Min(a.X, b.X) <= p.X && p.X <= math.Max(a.X, b.X) &&
+		math.Min(a.Y, b.Y) <= p.Y && p.Y <= math.Max(a.Y, b.Y)
+}
+
+// SegmentsIntersect 判断两条闭线段是否相交（含端点接触与共线重叠）。
+func SegmentsIntersect(a, b, c, d Point) bool {
+	return segmentsCross(a, b, c, d)
+}
+
+// segmentsCross 判断两条闭线段是否相交（含端点接触与共线重叠）。
+func segmentsCross(a, b, c, d Point) bool {
+	o1, o2 := orient(a, b, c), orient(a, b, d)
+	o3, o4 := orient(c, d, a), orient(c, d, b)
+	if ((o1 > 0 && o2 < 0) || (o1 < 0 && o2 > 0)) &&
+		((o3 > 0 && o4 < 0) || (o3 < 0 && o4 > 0)) {
+		return true
+	}
+	if o1 == 0 && onSegment(a, b, c) {
+		return true
+	}
+	if o2 == 0 && onSegment(a, b, d) {
+		return true
+	}
+	if o3 == 0 && onSegment(c, d, a) {
+		return true
+	}
+	if o4 == 0 && onSegment(c, d, b) {
+		return true
+	}
+	return false
+}
+
 func Inside(poly []Point, px, py float64) bool {
 	inside := false
 	n := len(poly)

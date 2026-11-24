@@ -45,3 +45,36 @@ func TestStrokeRejectsZero(t *testing.T) {
 		t.Fatal("重复点应报错")
 	}
 }
+
+func TestAreaAndPerimeter(t *testing.T) {
+	sq := []Point{{X: 0, Y: 0}, {X: 2, Y: 0}, {X: 2, Y: 2}, {X: 0, Y: 2}}
+	if a := Area(sq); a != 4 {
+		t.Fatalf("面积应为 4，实为 %v", a)
+	}
+	if p := Perimeter(sq); p != 8 {
+		t.Fatalf("周长应为 8，实为 %v", p)
+	}
+	// 有向面积随环绕方向变号，面积取绝对值。
+	rev := []Point{{X: 0, Y: 2}, {X: 2, Y: 2}, {X: 2, Y: 0}, {X: 0, Y: 0}}
+	if SignedArea(rev) >= 0 {
+		t.Fatal("反向环绕的有向面积应为负")
+	}
+	if Area(rev) != 4 {
+		t.Fatal("面积不应依赖环绕方向")
+	}
+}
+
+func TestIsSimple(t *testing.T) {
+	sq := []Point{{X: 0, Y: 0}, {X: 2, Y: 0}, {X: 2, Y: 2}, {X: 0, Y: 2}}
+	if !IsSimple(sq) {
+		t.Fatal("正方形应为简单多边形")
+	}
+	bow := []Point{{X: 0, Y: 0}, {X: 2, Y: 2}, {X: 2, Y: 0}, {X: 0, Y: 2}}
+	if IsSimple(bow) {
+		t.Fatal("自相交的蝴蝶结不应判为简单")
+	}
+	dup := []Point{{X: 0, Y: 0}, {X: 0, Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}}
+	if IsSimple(dup) {
+		t.Fatal("零长边不应判为简单")
+	}
+}
