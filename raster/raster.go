@@ -1,8 +1,10 @@
 package raster
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"vecgo/geom"
@@ -90,6 +92,35 @@ func (im *Image) SavePGM(path string) error {
 	}
 	_, err = f.Write(im.Pix)
 	return err
+}
+
+// LoadPGM 读取 SavePGM 写出的二值 PGM（P5，maxval 255）。
+func LoadPGM(path string) (*Image, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	br := bufio.NewReader(f)
+	var magic string
+	var w, h, maxv int
+	if _, err := fmt.Fscan(br, &magic, &w, &h, &maxv); err != nil {
+		return nil, fmt.Errorf("PGM 头解析失败: %w", err)
+	}
+	if magic != "P5" || maxv != 255 {
+		return nil, fmt.Errorf("不支持的 PGM 格式: %s maxval=%d", magic, maxv)
+	}
+	if _, err := br.ReadByte(); err != nil { // 头与像素之间的单个空白
+		return nil, err
+	}
+	im, err := New(w, h)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := io.ReadFull(br, im.Pix); err != nil {
+		return nil, fmt.Errorf("PGM 像素不足: %w", err)
+	}
+	return im, nil
 }
 
 func (im *Image) CountOn(threshold uint8) int {
