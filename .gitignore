@@ -1,2 +1,4 @@
 vecgo
 *.pgm
+# 缺省实验的产物图是验收证据，保留而不是被 *.pgm 忽略
+!artifacts/omission/**/*.pgm
