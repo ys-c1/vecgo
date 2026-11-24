@@ -52,7 +52,24 @@ func Inside(poly []Point, px, py float64) bool {
 	return inside
 }
 
+// Clip 用凸窗口裁剪多边形（Sutherland–Hodgman），返回拓扑干净的环：
+// 相邻重复点、共线中间点、零面积段都会被清掉，结果满足欧拉不变量
+// V-E+F=2（单点/线段等“无面积”结果除外，见 ClipDiagnosis.HasArea）。
+//
+// 需要看 SH 原始顶点流（用于诊断“前后对不上”）请用 ClipRaw 或
+// ClipReport。整体落在窗口外时返回 nil 环，不报错。
 func Clip(poly, window []Point) ([]Point, error) {
+	raw, err := ClipRaw(poly, window)
+	if err != nil {
+		return nil, err
+	}
+	return CleanPolygon(raw).Ring, nil
+}
+
+// ClipRaw 返回 Sutherland–Hodgman 的原始顶点流，不做退化清理。
+// 它在贴边/退化窗口下会含重复相邻点，因此未必满足欧拉不变量；
+// 生产路径请用 Clip。
+func ClipRaw(poly, window []Point) ([]Point, error) {
 	if len(poly) < 3 || len(window) < 3 {
 		return nil, errors.New("裁剪需要至少三个顶点")
 	}
