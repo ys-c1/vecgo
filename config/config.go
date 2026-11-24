@@ -1,6 +1,10 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"vecgo/geom"
+)
 
 type Config struct {
 	Width, Height int
@@ -11,10 +15,13 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+	// EdgeRule 选择贴边像素归属规则：
+	// "half-pixel"（默认）中心采样 + 左上角规则；"legacy" 复现改动前的射线法产物。
+	EdgeRule string
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm", EdgeRule: "half-pixel"}
 }
 
 func (c Config) Validate() error {
@@ -39,8 +46,23 @@ func (c Config) Validate() error {
 	if c.Shading != "flat" && c.Shading != "gradient" {
 		return fmt.Errorf("shading 非法: %s", c.Shading)
 	}
+	if c.EdgeRule != "half-pixel" && c.EdgeRule != "legacy" {
+		return fmt.Errorf("edge-rule 非法: %s", c.EdgeRule)
+	}
 	if c.Output == "" {
 		return fmt.Errorf("output 不能为空")
 	}
 	return nil
+}
+
+// ParseEdgeRule 把配置字符串映射为 geom.EdgeRule。
+func ParseEdgeRule(s string) (geom.EdgeRule, error) {
+	switch s {
+	case "half-pixel":
+		return geom.RuleHalfPixel, nil
+	case "legacy":
+		return geom.RuleLegacy, nil
+	default:
+		return geom.RuleHalfPixel, fmt.Errorf("edge-rule 非法: %s", s)
+	}
 }

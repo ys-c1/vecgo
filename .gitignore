@@ -1,2 +1,4 @@
 vecgo
 *.pgm
+# 黄金基线是测试夹具，必须随仓库提交
+!pipe/testdata/**/*.pgm

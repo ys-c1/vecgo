@@ -52,6 +52,102 @@ func Inside(poly []Point, px, py float64) bool {
 	return inside
 }
 
+// EdgeRule 是贴边像素的归属规则。
+//
+// 半像素规则（本渲染器的明文约定，见 docs/half-pixel-rule.md）：
+//   - 采样点取像素中心，超采样时取每个子像素的中心；
+//   - 点恰好落在多边形边上时，按“左上角规则”决定归属——
+//     顶边（水平边且多边形内部在其下方）与左边（非水平边且内部在边的左侧）算内，
+//     底边与右边算外。共享边因此只归属一侧，既不漏也不重。
+//
+// RuleLegacy 保留旧行为：Inside 的射线法没有明文边界约定，
+// 点是否算内取决于浮点除法是否恰好落在边上，等价于“顶边/右边算内”的偶然结果，
+// 跨平台可能因浮点实现差一行。仅用于复现旧产物，新场景不要使用。
+type EdgeRule int
+
+const (
+	// RuleHalfPixel 半像素规则：中心采样 + 左上角边界归属。默认规则。
+	RuleHalfPixel EdgeRule = iota
+	// RuleLegacy 旧规则：保持 Inside 射线法的历史行为，用于逐字节复现旧产物。
+	RuleLegacy
+)
+
+// InsideWith 按指定边界规则判定采样点 (px,py) 是否属于多边形。
+func InsideWith(poly []Point, px, py float64, rule EdgeRule) bool {
+	if rule == RuleLegacy {
+		return Inside(poly, px, py)
+	}
+	return insideTopLeft(poly, px, py)
+}
+
+// insideTopLeft 实现左上角规则。
+func insideTopLeft(poly []Point, px, py float64) bool {
+	n := len(poly)
+	ccw := signedArea(poly) > 0
+
+	// 第一步：点恰好落在某条边（含顶点）上时，按顶边/左边算内、底边/右边算外。
+	// 顶点可能同时贴两条边，采用 OR 语义：只要任一条是顶边或左边就算内，
+	// 因此结果不依赖边的遍历顺序，也不依赖多边形的绕向（CCW/CW 等价）。
+	onBoundary := false
+	for i := 0; i < n; i++ {
+		a, b := poly[i], poly[(i+1)%n]
+		cross := (b.X-a.X)*(py-a.Y) - (b.Y-a.Y)*(px-a.X)
+		if cross != 0 {
+			continue
+		}
+		if !onSegment(a, b, px, py) {
+			continue
+		}
+		onBoundary = true
+		ex, ey := b.X-a.X, b.Y-a.Y
+		if ey == 0 {
+			// 水平边：内部在 py 更大一侧（屏幕下方）的是顶边。
+			// 本库 py 随扫描行增大：CCW（面积正）多边形的顶边沿 +X，CW 沿 -X。
+			if ccw && ex > 0 || !ccw && ex < 0 {
+				return true
+			}
+			continue
+		}
+		// 非水平边：内部在 px 更大一侧（屏幕右方）的是左边。
+		// CCW 多边形的左边沿 -Y，CW 沿 +Y。
+		if ccw && ey < 0 || !ccw && ey > 0 {
+			return true
+		}
+	}
+	if onBoundary {
+		return false
+	}
+
+	// 第二步：不在任何边上，射线法判严格内部（与历史实现同构，但贴边点已在上面处理）。
+	inside := false
+	for i := 0; i < n; i++ {
+		ax, ay := poly[i].X, poly[i].Y
+		bx, by := poly[(i+1)%n].X, poly[(i+1)%n].Y
+		if (ay > py) == (by > py) {
+			continue
+		}
+		t := (py - ay) / (by - ay)
+		if ax+(bx-ax)*t > px {
+			inside = !inside
+		}
+	}
+	return inside
+}
+
+func signedArea(poly []Point) float64 {
+	a := 0.0
+	for i := range poly {
+		p, q := poly[i], poly[(i+1)%len(poly)]
+		a += p.X*q.Y - q.X*p.Y
+	}
+	return a
+}
+
+func onSegment(a, b Point, px, py float64) bool {
+	return px >= math.Min(a.X, b.X) && px <= math.Max(a.X, b.X) &&
+		py >= math.Min(a.Y, b.Y) && py <= math.Max(a.Y, b.Y)
+}
+
 func Clip(poly, window []Point) ([]Point, error) {
 	if len(poly) < 3 || len(window) < 3 {
 		return nil, errors.New("裁剪需要至少三个顶点")

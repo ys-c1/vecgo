@@ -33,7 +33,11 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	for i, poly := range scene {
 		moved[i] = Transform(poly, cfg.Scale, cfg.Rotate)
 	}
-	if err := im.Fill(moved, cfg.Supersample); err != nil {
+	rule, err := config.ParseEdgeRule(cfg.EdgeRule)
+	if err != nil {
+		return nil, err
+	}
+	if err := im.FillRule(moved, cfg.Supersample, rule); err != nil {
 		return nil, err
 	}
 	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {

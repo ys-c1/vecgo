@@ -21,6 +21,14 @@ func New(w, h int) (*Image, error) {
 }
 
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
+	return im.FillRule(polys, supersample, geom.RuleHalfPixel)
+}
+
+// FillRule 按指定的贴边规则填充。
+// rule = geom.RuleHalfPixel（默认，见 docs/half-pixel-rule.md）：
+// 采样点取（子）像素中心，贴边点按左上角规则归属；
+// rule = geom.RuleLegacy：逐字节复现改动前的射线法行为，用于与旧产物对齐。
+func (im *Image) FillRule(polys [][]geom.Point, supersample int, rule geom.EdgeRule) error {
 	if supersample < 1 {
 		return errors.New("supersample 必须为正")
 	}
@@ -63,7 +71,7 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
 					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
 					for _, p := range polys {
-						if geom.Inside(p, px, py) {
+						if geom.InsideWith(p, px, py, rule) {
 							hit++
 							break
 						}
