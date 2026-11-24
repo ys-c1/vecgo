@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="470" viewBox="0 0 980 470" role="img">
+<style>
+text { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.ink { fill: #0b0b0b; } .ink2 { fill: #52514e; } .muted { fill: #898781; }
+.grid { stroke: #e1e0d9; stroke-width:1; }
+.axis { stroke: #c3c2b7; stroke-width:1; }
+.s1 { stroke: #2a78d6; } .s2 { stroke: #eb6834; }
+.sw { stroke: #fcfcfb; stroke-width:2; }
+.title { font-size:15px; font-weight:600; }
+.sub { font-size:12px; }
+.tick { font-size:11px; }
+.lbl { font-size:12px; font-weight:600; }
+@media (prefers-color-scheme: dark) {
+  .ink { fill: #f0efec; } .ink2 { fill: #c3c2b7; } .muted { fill: #898781; }
+  .grid { stroke: #2c2c2a; } .axis { stroke: #383835; }
+  .s1 { stroke: #3987e5; } .s2 { stroke: #d95926; }
+  .sw { stroke: #1a1a19; }
+}
+</style>
+<rect width="980" height="470" fill="#fcfcfb" class="surf"/>
+<text x="490.0" y="32" text-anchor="middle" class="ink title">Hue interpolation steps: equal-angle vs perceptually equalized (LCh L*=50 C*=50)</text>
+<text x="490.0" y="54" text-anchor="middle" class="ink2 sub">swatch width = angular step; each row spans the same endpoint pair, 12 steps, swatches show the rendered sRGB color</text>
+<text x="138" y="114.0" text-anchor="end" class="ink2 sub">350°→10 equal-angle</text>
+<rect x="150.00" y="95.0" width="56.33" height="30" rx="3" fill="#bd5187" class="sw"><title>step 1: h=350.0°, ΔE00=0.702</title></rect>
+<rect x="208.33" y="95.0" width="56.33" height="30" rx="3" fill="#be5085" class="sw"><title>step 2: h=351.7°, ΔE00=0.705</title></rect>
+<rect x="266.67" y="95.0" width="56.33" height="30" rx="3" fill="#bf5082" class="sw"><title>step 3: h=353.3°, ΔE00=0.709</title></rect>
+<rect x="325.00" y="95.0" width="56.33" height="30" rx="3" fill="#c05080" class="sw"><title>step 4: h=355.0°, ΔE00=0.714</title></rect>
+<rect x="383.33" y="95.0" width="56.33" height="30" rx="3" fill="#c14f7e" class="sw"><title>step 5: h=356.7°, ΔE00=0.720</title></rect>
+<rect x="441.67" y="95.0" width="56.33" height="30" rx="3" fill="#c14f7b" class="sw"><title>step 6: h=358.3°, ΔE00=0.727</title></rect>
+<rect x="500.00" y="95.0" width="56.33" height="30" rx="3" fill="#c24f79" class="sw"><title>step 7: h=360.0°, ΔE00=0.734</title></rect>
+<rect x="558.33" y="95.0" width="56.33" height="30" rx="3" fill="#c24f76" class="sw"><title>step 8: h=361.7°, ΔE00=0.742</title></rect>
+<rect x="616.67" y="95.0" width="56.33" height="30" rx="3" fill="#c34f74" class="sw"><title>step 9: h=363.3°, ΔE00=0.750</title></rect>
+<rect x="675.00" y="95.0" width="56.33" height="30" rx="3" fill="#c34f72" class="sw"><title>step 10: h=365.0°, ΔE00=0.759</title></rect>
+<rect x="733.33" y="95.0" width="56.33" height="30" rx="3" fill="#c44f6f" class="sw"><title>step 11: h=366.7°, ΔE00=0.768</title></rect>
+<rect x="791.67" y="95.0" width="56.33" height="30" rx="3" fill="#c44f6d" class="sw"><title>step 12: h=368.3°, ΔE00=0.778</title></rect>
+<text x="862" y="114.0" class="ink2 sub">CV 3.33%</text>
+<text x="138" y="158.0" text-anchor="end" class="ink2 sub">350°→10 equalized</text>
+<rect x="150.00" y="139.0" width="59.00" height="30" rx="3" fill="#bd5187" class="sw"><title>step 1: h=350.0°, ΔE00=0.734</title></rect>
+<rect x="211.00" y="139.0" width="58.70" height="30" rx="3" fill="#be5085" class="sw"><title>step 2: h=351.7°, ΔE00=0.734</title></rect>
+<rect x="271.70" y="139.0" width="58.32" height="30" rx="3" fill="#bf5082" class="sw"><title>step 3: h=353.5°, ΔE00=0.734</title></rect>
+<rect x="332.02" y="139.0" width="57.88" height="30" rx="3" fill="#c05080" class="sw"><title>step 4: h=355.2°, ΔE00=0.734</title></rect>
+<rect x="391.90" y="139.0" width="57.38" height="30" rx="3" fill="#c14f7d" class="sw"><title>step 5: h=356.9°, ΔE00=0.734</title></rect>
+<rect x="451.28" y="139.0" width="56.83" height="30" rx="3" fill="#c14f7b" class="sw"><title>step 6: h=358.6°, ΔE00=0.734</title></rect>
+<rect x="510.11" y="139.0" width="56.25" height="30" rx="3" fill="#c24f78" class="sw"><title>step 7: h=360.3°, ΔE00=0.734</title></rect>
+<rect x="568.36" y="139.0" width="55.63" height="30" rx="3" fill="#c34f76" class="sw"><title>step 8: h=362.0°, ΔE00=0.734</title></rect>
+<rect x="625.99" y="139.0" width="54.99" height="30" rx="3" fill="#c34f74" class="sw"><title>step 9: h=363.6°, ΔE00=0.734</title></rect>
+<rect x="682.98" y="139.0" width="54.34" height="30" rx="3" fill="#c34f71" class="sw"><title>step 10: h=365.2°, ΔE00=0.734</title></rect>
+<rect x="739.32" y="139.0" width="53.67" height="30" rx="3" fill="#c44f6f" class="sw"><title>step 11: h=366.8°, ΔE00=0.734</title></rect>
+<rect x="794.99" y="139.0" width="53.01" height="30" rx="3" fill="#c44f6d" class="sw"><title>step 12: h=368.4°, ΔE00=0.734</title></rect>
+<text x="862" y="158.0" class="ink2 sub">CV 0.00%</text>
+<text x="138" y="220.0" text-anchor="end" class="ink2 sub">0°→180 equal-angle</text>
+<rect x="150.00" y="201.0" width="56.33" height="30" rx="3" fill="#c24f79" class="sw"><title>step 1: h=0.0°, ΔE00=6.329</title></rect>
+<rect x="208.33" y="201.0" width="56.33" height="30" rx="3" fill="#b9538e" class="sw"><title>step 2: h=-15.0°, ΔE00=6.369</title></rect>
+<rect x="266.67" y="201.0" width="56.33" height="30" rx="3" fill="#aa5aa2" class="sw"><title>step 3: h=-30.0°, ΔE00=7.226</title></rect>
+<rect x="325.00" y="201.0" width="56.33" height="30" rx="3" fill="#9462b4" class="sw"><title>step 4: h=-45.0°, ΔE00=8.892</title></rect>
+<rect x="383.33" y="201.0" width="56.33" height="30" rx="3" fill="#776cc1" class="sw"><title>step 5: h=-60.0°, ΔE00=10.245</title></rect>
+<rect x="441.67" y="201.0" width="56.33" height="30" rx="3" fill="#4e74c9" class="sw"><title>step 6: h=-75.0°, ΔE00=9.445</title></rect>
+<rect x="500.00" y="201.0" width="56.33" height="30" rx="3" fill="#007ccc" class="sw"><title>step 7: h=-90.0°, ΔE00=7.560</title></rect>
+<rect x="558.33" y="201.0" width="56.33" height="30" rx="3" fill="#0082c9" class="sw"><title>step 8: h=-105.0°, ΔE00=6.320</title></rect>
+<rect x="616.67" y="201.0" width="56.33" height="30" rx="3" fill="#0086c0" class="sw"><title>step 9: h=-120.0°, ΔE00=6.001</title></rect>
+<rect x="675.00" y="201.0" width="56.33" height="30" rx="3" fill="#0089b2" class="sw"><title>step 10: h=-135.0°, ΔE00=6.434</title></rect>
+<rect x="733.33" y="201.0" width="56.33" height="30" rx="3" fill="#008ba0" class="sw"><title>step 11: h=-150.0°, ΔE00=7.243</title></rect>
+<rect x="791.67" y="201.0" width="56.33" height="30" rx="3" fill="#008b8c" class="sw"><title>step 12: h=-165.0°, ΔE00=7.650</title></rect>
+<text x="862" y="220.0" class="ink2 sub">CV 17.63%</text>
+<text x="138" y="264.0" text-anchor="end" class="ink2 sub">0°→180 equalized</text>
+<rect x="150.00" y="245.0" width="67.16" height="30" rx="3" fill="#c24f79" class="sw"><title>step 1: h=0.0°, ΔE00=7.464</title></rect>
+<rect x="219.16" y="245.0" width="64.98" height="30" rx="3" fill="#b75492" class="sw"><title>step 2: h=-17.8°, ΔE00=7.464</title></rect>
+<rect x="286.14" y="245.0" width="54.62" height="30" rx="3" fill="#a45ca8" class="sw"><title>step 3: h=-35.0°, ΔE00=7.464</title></rect>
+<rect x="342.76" y="245.0" width="44.93" height="30" rx="3" fill="#8c65b8" class="sw"><title>step 4: h=-49.6°, ΔE00=7.464</title></rect>
+<rect x="389.69" y="245.0" width="40.50" height="30" rx="3" fill="#736dc2" class="sw"><title>step 5: h=-61.6°, ΔE00=7.464</title></rect>
+<rect x="432.19" y="245.0" width="41.97" height="30" rx="3" fill="#5673c8" class="sw"><title>step 6: h=-72.6°, ΔE00=7.464</title></rect>
+<rect x="476.15" y="245.0" width="49.67" height="30" rx="3" fill="#2779cc" class="sw"><title>step 7: h=-83.9°, ΔE00=7.464</title></rect>
+<rect x="527.82" y="245.0" width="62.19" height="30" rx="3" fill="#007fcb" class="sw"><title>step 8: h=-97.2°, ΔE00=7.464</title></rect>
+<rect x="592.01" y="245.0" width="70.59" height="30" rx="3" fill="#0084c4" class="sw"><title>step 9: h=-113.7°, ΔE00=7.464</title></rect>
+<rect x="664.59" y="245.0" width="66.43" height="30" rx="3" fill="#0089b5" class="sw"><title>step 10: h=-132.3°, ΔE00=7.464</title></rect>
+<rect x="733.02" y="245.0" width="58.07" height="30" rx="3" fill="#008ba0" class="sw"><title>step 11: h=-149.9°, ΔE00=7.464</title></rect>
+<rect x="793.09" y="245.0" width="54.91" height="30" rx="3" fill="#008b8b" class="sw"><title>step 12: h=-165.4°, ΔE00=7.464</title></rect>
+<text x="862" y="264.0" class="ink2 sub">CV 0.00%</text>
+<text x="138" y="326.0" text-anchor="end" class="ink2 sub">20°→260 equal-angle</text>
+<rect x="150.00" y="307.0" width="56.33" height="30" rx="3" fill="#c4515c" class="sw"><title>step 1: h=20.0°, ΔE00=4.881</title></rect>
+<rect x="208.33" y="307.0" width="56.33" height="30" rx="3" fill="#c44f6a" class="sw"><title>step 2: h=10.0°, ΔE00=4.521</title></rect>
+<rect x="266.67" y="307.0" width="56.33" height="30" rx="3" fill="#c24f79" class="sw"><title>step 3: h=0.0°, ΔE00=4.265</title></rect>
+<rect x="325.00" y="307.0" width="56.33" height="30" rx="3" fill="#bd5187" class="sw"><title>step 4: h=-10.0°, ΔE00=4.179</title></rect>
+<rect x="383.33" y="307.0" width="56.33" height="30" rx="3" fill="#b55595" class="sw"><title>step 5: h=-20.0°, ΔE00=4.307</title></rect>
+<rect x="441.67" y="307.0" width="56.33" height="30" rx="3" fill="#aa5aa2" class="sw"><title>step 6: h=-30.0°, ΔE00=4.688</title></rect>
+<rect x="500.00" y="307.0" width="56.33" height="30" rx="3" fill="#9c5fae" class="sw"><title>step 7: h=-40.0°, ΔE00=5.332</title></rect>
+<rect x="558.33" y="307.0" width="56.33" height="30" rx="3" fill="#8b66b8" class="sw"><title>step 8: h=-50.0°, ΔE00=6.141</title></rect>
+<rect x="616.67" y="307.0" width="56.33" height="30" rx="3" fill="#776cc1" class="sw"><title>step 9: h=-60.0°, ΔE00=6.770</title></rect>
+<rect x="675.00" y="307.0" width="56.33" height="30" rx="3" fill="#5d72c7" class="sw"><title>step 10: h=-70.0°, ΔE00=6.763</title></rect>
+<rect x="733.33" y="307.0" width="56.33" height="30" rx="3" fill="#3b77cb" class="sw"><title>step 11: h=-80.0°, ΔE00=6.103</title></rect>
+<rect x="791.67" y="307.0" width="56.33" height="30" rx="3" fill="#007ccc" class="sw"><title>step 12: h=-90.0°, ΔE00=5.244</title></rect>
+<text x="862" y="326.0" class="ink2 sub">CV 17.43%</text>
+<text x="138" y="370.0" text-anchor="end" class="ink2 sub">20°→260 equalized</text>
+<rect x="150.00" y="351.0" width="61.10" height="30" rx="3" fill="#c4515c" class="sw"><title>step 1: h=20.0°, ΔE00=5.262</title></rect>
+<rect x="213.10" y="351.0" width="66.75" height="30" rx="3" fill="#c44f6c" class="sw"><title>step 2: h=9.2°, ΔE00=5.262</title></rect>
+<rect x="281.85" y="351.0" width="70.98" height="30" rx="3" fill="#c14f7c" class="sw"><title>step 3: h=-2.6°, ΔE00=5.262</title></rect>
+<rect x="354.83" y="351.0" width="70.57" height="30" rx="3" fill="#b9538e" class="sw"><title>step 4: h=-15.1°, ΔE00=5.262</title></rect>
+<rect x="427.40" y="351.0" width="64.72" height="30" rx="3" fill="#ad589f" class="sw"><title>step 5: h=-27.6°, ΔE00=5.262</title></rect>
+<rect x="494.12" y="351.0" width="56.39" height="30" rx="3" fill="#9e5fad" class="sw"><title>step 6: h=-39.0°, ΔE00=5.262</title></rect>
+<rect x="552.51" y="351.0" width="49.06" height="30" rx="3" fill="#8d65b8" class="sw"><title>step 7: h=-49.0°, ΔE00=5.262</title></rect>
+<rect x="603.57" y="351.0" width="44.38" height="30" rx="3" fill="#7c6abf" class="sw"><title>step 8: h=-57.8°, ΔE00=5.262</title></rect>
+<rect x="649.95" y="351.0" width="42.70" height="30" rx="3" fill="#696fc5" class="sw"><title>step 9: h=-65.7°, ΔE00=5.262</title></rect>
+<rect x="694.65" y="351.0" width="44.10" height="30" rx="3" fill="#5373c9" class="sw"><title>step 10: h=-73.4°, ΔE00=5.262</title></rect>
+<rect x="740.76" y="351.0" width="48.72" height="30" rx="3" fill="#3578cb" class="sw"><title>step 11: h=-81.3°, ΔE00=5.262</title></rect>
+<rect x="791.48" y="351.0" width="56.52" height="30" rx="3" fill="#007ccc" class="sw"><title>step 12: h=-90.0°, ΔE00=5.262</title></rect>
+<text x="862" y="370.0" class="ink2 sub">CV 0.00%</text>
+<rect x="150" y="436" width="14" height="14" rx="3" fill="#888" class="sw"/>
+<text x="170" y="448" class="muted sub">swatch color = CIELAB LCh point rendered to sRGB; hover a swatch for its hue and step ΔE00</text>
+</svg>
