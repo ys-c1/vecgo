@@ -1,7 +1,10 @@
 package geom
 
 import (
+	"math"
 	"testing"
+
+	"vecgo/verr"
 )
 
 func TestBezierEnds(t *testing.T) {
@@ -45,3 +48,35 @@ func TestStrokeRejectsZero(t *testing.T) {
 		t.Fatal("重复点应报错")
 	}
 }
+
+func TestErrorsCarryGeomKinds(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want verr.Kind
+	}{
+		{"flatten", mustErr(Flatten(Point{}, Point{}, Point{}, Point{}, 0)), verr.KindGeomSegments},
+		{"clip", mustErr(Clip(nil, nil)), verr.KindGeomClipVerts},
+		{"stroke-width", mustErr(Stroke([]Point{{X: 0, Y: 0}, {X: 1, Y: 0}}, 0)), verr.KindGeomStrokeW},
+		{"stroke-dup", mustErr(Stroke([]Point{{X: 0, Y: 0}, {X: 0, Y: 0}}, 1)), verr.KindGeomDupPoint},
+		{"stroke-single", mustErr(Stroke([]Point{{X: 1, Y: 1}}, 1)), verr.KindGeomTooFewPts},
+		{"poly-few", ValidPolygon([]Point{{X: 0, Y: 0}, {X: 1, Y: 1}}), verr.KindGeomFewVerts},
+		{"poly-inf", ValidPolygon([]Point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: math.Inf(1), Y: 1}}), verr.KindGeomNonFinite},
+		{"poly-nan", ValidPolygon([]Point{{X: math.NaN(), Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}}), verr.KindGeomNonFinite},
+		{"empty", RequirePoints(nil), verr.KindGeomEmptyPts},
+	}
+	for _, tc := range cases {
+		k, ok := verr.Of(tc.err)
+		if !ok {
+			t.Fatalf("%s 未归一: %v", tc.name, tc.err)
+		}
+		if k != tc.want {
+			t.Fatalf("%s 编码: 期望 %s 实际 %s", tc.name, tc.want.Hex(), k.Hex())
+		}
+		if k.Stage() != verr.StageGeom {
+			t.Fatalf("%s 段不对: %v", tc.name, k.Stage())
+		}
+	}
+}
+
+func mustErr(_ any, err error) error { return err }

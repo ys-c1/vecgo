@@ -1,14 +1,18 @@
 package post
 
 import (
-	"errors"
+	"math"
 
 	"vecgo/raster"
+	"vecgo/verr"
 )
 
 func Gamma(im *raster.Image, gamma float64) error {
-	if gamma < 0.1 || gamma > 10 {
-		return errors.New("gamma 超出范围")
+	if err := checkImage(im); err != nil {
+		return err
+	}
+	if math.IsNaN(gamma) || math.IsInf(gamma, 0) || gamma < 0.1 || gamma > 10 {
+		return verr.Errorf(verr.KindPostGamma, "gamma 超出范围: %v", gamma)
 	}
 	var table [256]uint8
 	for i := 0; i < 256; i++ {
@@ -21,15 +25,20 @@ func Gamma(im *raster.Image, gamma float64) error {
 }
 
 func Blur(im *raster.Image, radius int) (*raster.Image, error) {
+	if err := checkImage(im); err != nil {
+		return nil, err
+	}
 	if radius < 0 {
-		return nil, errors.New("blur 不能为负")
+		return nil, verr.Errorf(verr.KindPostBlurRadius, "blur 不能为负: %d", radius)
+	}
+	out, err := raster.New(im.W, im.H)
+	if err != nil {
+		return nil, verr.Wrap(verr.KindPostBlurImage, err)
 	}
 	if radius == 0 {
-		out, _ := raster.New(im.W, im.H)
 		copy(out.Pix, im.Pix)
 		return out, nil
 	}
-	out, _ := raster.New(im.W, im.H)
 	for y := 0; y < im.H; y++ {
 		for x := 0; x < im.W; x++ {
 			sum, count := 0, 0
@@ -46,6 +55,18 @@ func Blur(im *raster.Image, radius int) (*raster.Image, error) {
 		}
 	}
 	return out, nil
+}
+
+// checkImage 把 nil 与“像素缓冲和画幅不一致”挡在越界之前。
+// 后者原本会在 im.Pix[i] 处 panic，是 post 段看不见的失败。
+func checkImage(im *raster.Image) error {
+	if im == nil {
+		return verr.Errorf(verr.KindPostNilImage, "图像为空")
+	}
+	if im.W <= 0 || im.H <= 0 || len(im.Pix) != im.W*im.H {
+		return verr.Errorf(verr.KindPostBadImage, "像素缓冲与画幅不一致: len=%d %dx%d", len(im.Pix), im.W, im.H)
+	}
+	return nil
 }
 
 func pow(a, b float64) float64 {

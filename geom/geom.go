@@ -1,8 +1,9 @@
 package geom
 
 import (
-	"errors"
 	"math"
+
+	"vecgo/verr"
 )
 
 type Point struct{ X, Y float64 }
@@ -18,13 +19,22 @@ func Bezier(p0, p1, p2, p3 Point, t float64) Point {
 
 func Flatten(p0, p1, p2, p3 Point, segments int) ([]Point, error) {
 	if segments < 1 {
-		return nil, errors.New("segments 必须为正")
+		return nil, verr.Errorf(verr.KindGeomSegments, "segments 必须为正")
 	}
 	out := make([]Point, segments+1)
 	for i := 0; i <= segments; i++ {
 		out[i] = Bezier(p0, p1, p2, p3, float64(i)/float64(segments))
 	}
 	return out, nil
+}
+
+// Length 对空折线返回 0；这里不报错（0 是合法长度），但提供一个显式的
+// 空输入检查供需要区分“空折线”的调用方使用。
+func RequirePoints(pts []Point) error {
+	if len(pts) == 0 {
+		return verr.Errorf(verr.KindGeomEmptyPts, "折线为空")
+	}
+	return nil
 }
 
 func Length(pts []Point) float64 {
@@ -52,9 +62,23 @@ func Inside(poly []Point, px, py float64) bool {
 	return inside
 }
 
+// ValidPolygon 检查一个多边形是否可交给光栅：至少三个顶点，且坐标有限。
+// 失败编码落在 geom 段。
+func ValidPolygon(poly []Point) error {
+	if len(poly) < 3 {
+		return verr.Errorf(verr.KindGeomFewVerts, "多边形至少三个顶点: 实际 %d", len(poly))
+	}
+	for i, p := range poly {
+		if math.IsNaN(p.X) || math.IsNaN(p.Y) || math.IsInf(p.X, 0) || math.IsInf(p.Y, 0) {
+			return verr.Errorf(verr.KindGeomNonFinite, "顶点坐标非有限: 下标 %d (%v,%v)", i, p.X, p.Y)
+		}
+	}
+	return nil
+}
+
 func Clip(poly, window []Point) ([]Point, error) {
 	if len(poly) < 3 || len(window) < 3 {
-		return nil, errors.New("裁剪需要至少三个顶点")
+		return nil, verr.Errorf(verr.KindGeomClipVerts, "裁剪需要至少三个顶点")
 	}
 	out := append([]Point{}, poly...)
 	for i := range window {
@@ -96,8 +120,12 @@ func intersect(p, q, a, b Point) Point {
 }
 
 func Stroke(pts []Point, width float64) ([]Point, error) {
-	if width <= 0 {
-		return nil, errors.New("width 必须为正")
+	if math.IsNaN(width) || math.IsInf(width, 0) || width <= 0 {
+		return nil, verr.Errorf(verr.KindGeomStrokeW, "width 必须为正且有限: %v", width)
+	}
+	if len(pts) == 1 {
+		// 一个点的折线没有方向；原实现会在 pts[i-1] 处越界 panic。
+		return nil, verr.Errorf(verr.KindGeomTooFewPts, "折线至少需要两个点")
 	}
 	half := width / 2
 	left := make([]Point, 0, len(pts))
@@ -111,7 +139,7 @@ func Stroke(pts []Point, width float64) ([]Point, error) {
 		}
 		n := math.Hypot(dx, dy)
 		if n < 1e-12 {
-			return nil, errors.New("折线出现重复点")
+			return nil, verr.Errorf(verr.KindGeomDupPoint, "折线出现重复点")
 		}
 		nx, ny := -dy/n*half, dx/n*half
 		left = append(left, Point{p.X + nx, p.Y + ny})

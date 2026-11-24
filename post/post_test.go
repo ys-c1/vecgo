@@ -1,9 +1,11 @@
 package post
 
 import (
+	"math"
 	"testing"
 
 	"vecgo/raster"
+	"vecgo/verr"
 )
 
 func TestGammaBrightens(t *testing.T) {
@@ -39,3 +41,33 @@ func TestBlurZeroCopies(t *testing.T) {
 		t.Fatal("应返回新图")
 	}
 }
+
+func TestPostKinds(t *testing.T) {
+	im, _ := raster.New(2, 2)
+	cases := []struct {
+		name string
+		err  error
+		want verr.Kind
+	}{
+		{"gamma-nil", Gamma(nil, 2), verr.KindPostNilImage},
+		{"gamma-range", Gamma(im, 0), verr.KindPostGamma},
+		{"gamma-nan", Gamma(im, math.NaN()), verr.KindPostGamma},
+		{"gamma-inf", Gamma(im, math.Inf(1)), verr.KindPostGamma},
+		{"blur-nil", errOf(Blur(nil, 1)), verr.KindPostNilImage},
+		{"blur-neg", errOf(Blur(im, -1)), verr.KindPostBlurRadius},
+	}
+	for _, tc := range cases {
+		k, ok := verr.Of(tc.err)
+		if !ok {
+			t.Fatalf("%s 未归一: %v", tc.name, tc.err)
+		}
+		if k != tc.want {
+			t.Fatalf("%s 期望 %s 实际 %s", tc.name, tc.want.Hex(), k.Hex())
+		}
+		if k.Stage() != verr.StagePost {
+			t.Fatalf("%s 段不对: %v", tc.name, k.Stage())
+		}
+	}
+}
+
+func errOf(_ *raster.Image, err error) error { return err }
