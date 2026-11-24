@@ -3,6 +3,8 @@ package geom
 import (
 	"errors"
 	"math"
+
+	"vecgo/sum"
 )
 
 type Point struct{ X, Y float64 }
@@ -30,7 +32,8 @@ func Flatten(p0, p1, p2, p3 Point, segments int) ([]Point, error) {
 func Length(pts []Point) float64 {
 	total := 0.0
 	for i := 0; i+1 < len(pts); i++ {
-		total += math.Hypot(pts[i+1].X-pts[i].X, pts[i+1].Y-pts[i].Y)
+		// 经确定性原语按固定下标顺序左折叠，禁止重排。
+		total = sum.OrderedAdd(total, math.Hypot(pts[i+1].X-pts[i].X, pts[i+1].Y-pts[i].Y))
 	}
 	return total
 }

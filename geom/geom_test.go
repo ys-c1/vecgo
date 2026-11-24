@@ -1,6 +1,7 @@
 package geom
 
 import (
+	"math"
 	"testing"
 )
 
@@ -43,5 +44,20 @@ func TestStrokeRejectsZero(t *testing.T) {
 	}
 	if _, err := Stroke([]Point{{X: 0, Y: 0}, {X: 0, Y: 0}}, 1); err == nil {
 		t.Fatal("重复点应报错")
+	}
+}
+
+func TestLengthDeterministic(t *testing.T) {
+	pts := []Point{{X: 0, Y: 0}, {X: 1.1, Y: 2.2}, {X: 3.3, Y: 4.4},
+		{X: 5.5, Y: 6.6}, {X: 7.7, Y: 8.8}, {X: 9.9, Y: 10.1}}
+	first := math.Float64bits(Length(pts))
+	for i := 0; i < 20; i++ {
+		if math.Float64bits(Length(pts)) != first {
+			t.Fatalf("第 %d 次 Length 位模式不一致", i)
+		}
+	}
+	// 空输入与单点仍按原接口返回 0，签名行为不变。
+	if Length(nil) != 0 || Length([]Point{{X: 1, Y: 1}}) != 0 {
+		t.Fatal("Length 边界行为被改变")
 	}
 }
