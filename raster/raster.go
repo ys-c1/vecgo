@@ -11,13 +11,53 @@ import (
 type Image struct {
 	W, H int
 	Pix  []uint8
+
+	// scratch 是与 Pix 共用同一底层数组的一段尾部空闲区，供就地算法
+	// （如模糊的行环）临时使用；没有预留时为 nil。
+	scratch []uint8
+}
+
+// Scratch 返回一段长度不少于 n 的临时字节缓冲，供就地算法使用，用完即弃。
+// 若建图时预留了 scratch（见 NewWithScratch）就直接借用，否则临时分配一块。
+func (im *Image) Scratch(n int) []uint8 {
+	if n <= 0 {
+		return nil
+	}
+	if len(im.scratch) >= n {
+		return im.scratch[:n]
+	}
+	return make([]uint8, n)
+}
+
+// ToByte 把 [0,1] 的强度统一换算成 8 位像素值，先夹取再截断。
+// 覆盖度、着色与 gamma 三条路径都只调用这一份换算，避免各自写一套
+// uint8(255*…) 而在边界上产生分歧。
+func ToByte(t float64) uint8 {
+	if t <= 0 {
+		return 0
+	}
+	if t >= 1 {
+		return 255
+	}
+	return uint8(255 * t)
 }
 
 func New(w, h int) (*Image, error) {
+	return NewWithScratch(w, h, 0)
+}
+
+// NewWithScratch 建一张 w×h 的图，并额外预留 scratch 字节的临时区。
+// 像素与临时区共用同一次分配：整幅处理始终只有一次整帧分配，临时空间只是
+// 这张图尾部多出的一小段，而不是另起一块。
+func NewWithScratch(w, h, scratch int) (*Image, error) {
 	if w <= 0 || h <= 0 {
 		return nil, errors.New("画幅必须为正")
 	}
-	return &Image{W: w, H: h, Pix: make([]uint8, w*h)}, nil
+	if scratch < 0 {
+		scratch = 0
+	}
+	buf := make([]uint8, w*h+scratch)
+	return &Image{W: w, H: h, Pix: buf[:w*h], scratch: buf[w*h:]}, nil
 }
 
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
@@ -70,7 +110,7 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 					}
 				}
 			}
-			im.Pix[row*im.W+col] = uint8(255 * hit / den)
+			im.Pix[row*im.W+col] = ToByte(float64(hit) / float64(den))
 		}
 	}
 	return nil

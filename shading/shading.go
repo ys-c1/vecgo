@@ -16,13 +16,13 @@ func Apply(im *raster.Image, mode string, top, bottom float64) error {
 	for row := 0; row < im.H; row++ {
 		var v uint8
 		if mode == "flat" {
-			v = uint8(255 * top)
+			v = raster.ToByte(top)
 		} else {
 			t := top
 			if im.H > 1 {
 				t = top + (bottom-top)*float64(row)/float64(im.H-1)
 			}
-			v = uint8(255 * t)
+			v = raster.ToByte(t)
 		}
 		for col := 0; col < im.W; col++ {
 			if im.Pix[row*im.W+col] != 0 {

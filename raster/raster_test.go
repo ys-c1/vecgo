@@ -43,3 +43,27 @@ func TestNewRejectsBadSize(t *testing.T) {
 		t.Fatal("宽度为 0 应报错")
 	}
 }
+
+// TestToByteMatchesLegacyExpr 固定转换口径：唯一的 ToByte 必须与改造前各处
+// 手写的 uint8(255*t) 完全一致，包括四舍五入与截断的边界。
+func TestToByteMatchesLegacyExpr(t *testing.T) {
+	if got := ToByte(-0.5); got != 0 {
+		t.Fatalf("负值应夹到 0, got %d", got)
+	}
+	if got := ToByte(1.5); got != 255 {
+		t.Fatalf("大于 1 应夹到 255, got %d", got)
+	}
+	for i := 0; i <= 255; i++ {
+		if got, want := ToByte(float64(i)/255), uint8(255*(float64(i)/255)); got != want {
+			t.Fatalf("i=%d: ToByte=%d 期望 %d", i, got, want)
+		}
+	}
+	for ss := 1; ss <= 8; ss++ {
+		den := ss * ss
+		for hit := 0; hit <= den; hit++ {
+			if got, want := ToByte(float64(hit)/float64(den)), uint8(255*hit/den); got != want {
+				t.Fatalf("ss=%d hit=%d: ToByte=%d 期望 %d", ss, hit, got, want)
+			}
+		}
+	}
+}
