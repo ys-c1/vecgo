@@ -33,7 +33,9 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	for i, poly := range scene {
 		moved[i] = Transform(poly, cfg.Scale, cfg.Rotate)
 	}
-	if err := im.Fill(moved, cfg.Supersample); err != nil {
+	// 按旋转后的采样间距反解子采样数；θ=0 时反解值等于配置值，路径不变。
+	effectiveN := EffectiveSupersample(cfg.Supersample, cfg.Rotate)
+	if err := im.Fill(moved, effectiveN); err != nil {
 		return nil, err
 	}
 	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {
