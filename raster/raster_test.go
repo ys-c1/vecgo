@@ -43,3 +43,41 @@ func TestNewRejectsBadSize(t *testing.T) {
 		t.Fatal("宽度为 0 应报错")
 	}
 }
+
+// TestCopyFrameCounts 证明“整图拷贝”计数是活的：真正发生一次拷贝时计数
+// 会加一，而不是永远为 0 的摆设。
+func TestCopyFrameCounts(t *testing.T) {
+	ResetStats()
+	src, _ := New(4, 4)
+	dst, _ := New(4, 4)
+	src.Pix[0] = 7
+	if err := copyFrame(dst, src); err != nil {
+		t.Fatal(err)
+	}
+	if got := Snapshot().FullCopies; got != 1 {
+		t.Fatalf("整图拷贝计数应为 1，实际 %d", got)
+	}
+	if dst.Pix[0] != 7 {
+		t.Fatal("拷贝后像素应一致")
+	}
+	if err := copyFrame(dst, nil); err == nil {
+		t.Fatal("空图拷贝应报错")
+	}
+}
+
+// TestLeaseDoesNotCopy 证明 Lease 返回的就是原缓冲，不是副本。
+func TestLeaseDoesNotCopy(t *testing.T) {
+	im, _ := New(4, 4)
+	pix := im.Lease("test")
+	pix[3] = 9
+	if im.Pix[3] != 9 {
+		t.Fatal("Lease 返回的应是同一块缓冲")
+	}
+}
+
+func TestFillRejectsEmptyScene(t *testing.T) {
+	im, _ := New(4, 4)
+	if err := im.Fill(nil, 1); err == nil {
+		t.Fatal("空场景应报错而不是 panic")
+	}
+}

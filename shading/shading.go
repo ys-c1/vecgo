@@ -13,6 +13,7 @@ func Apply(im *raster.Image, mode string, top, bottom float64) error {
 	if top < 0 || top > 1 || bottom < 0 || bottom > 1 {
 		return errors.New("强度超出范围")
 	}
+	pix := im.Lease("shading")
 	for row := 0; row < im.H; row++ {
 		var v uint8
 		if mode == "flat" {
@@ -25,8 +26,8 @@ func Apply(im *raster.Image, mode string, top, bottom float64) error {
 			v = uint8(255 * t)
 		}
 		for col := 0; col < im.W; col++ {
-			if im.Pix[row*im.W+col] != 0 {
-				im.Pix[row*im.W+col] = v
+			if pix[row*im.W+col] != 0 {
+				pix[row*im.W+col] = v
 			}
 		}
 	}
