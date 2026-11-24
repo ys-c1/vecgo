@@ -10,7 +10,14 @@ type Config struct {
 	Shading       string
 	Gamma         float64
 	Blur          int
-	Output        string
+	// PyramidLevels > 0 时走“固定层数”金字塔重建路径（用恰好该层数）。
+	// 0 表示不启用金字塔，渲染管线与原来逐字节一致。
+	PyramidLevels int
+	// TargetError > 0 且 PyramidLevels == 0 时走“按目标误差自适应选层”
+	// 路径：在当前图上拟合 E(n)=A q^n 并取满足误差的最小整数层。
+	// 取值为 0..255 的灰度级 RMSE；0 表示不启用。
+	TargetError float64
+	Output      string
 }
 
 func Default() Config {
@@ -35,6 +42,12 @@ func (c Config) Validate() error {
 	}
 	if c.Blur < 0 || c.Blur > 16 {
 		return fmt.Errorf("blur 超出范围: %d", c.Blur)
+	}
+	if c.PyramidLevels < 0 || c.PyramidLevels > 64 {
+		return fmt.Errorf("pyramid_levels 超出范围: %d", c.PyramidLevels)
+	}
+	if c.TargetError < 0 || c.TargetError > 255 {
+		return fmt.Errorf("target_error 超出范围: %v", c.TargetError)
 	}
 	if c.Shading != "flat" && c.Shading != "gradient" {
 		return fmt.Errorf("shading 非法: %s", c.Shading)
