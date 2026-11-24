@@ -10,14 +10,21 @@ func Gamma(im *raster.Image, gamma float64) error {
 	if gamma < 0.1 || gamma > 10 {
 		return errors.New("gamma 超出范围")
 	}
-	var table [256]uint8
-	for i := 0; i < 256; i++ {
-		table[i] = uint8(255 * pow(float64(i)/255, 1/gamma))
-	}
+	table := GammaTable(gamma)
 	for i := range im.Pix {
 		im.Pix[i] = table[im.Pix[i]]
 	}
 	return nil
+}
+
+// GammaTable 返回 Gamma 使用的 256 项查找表。抽出它是为了让“预测端”
+// 能逐值复现后处理阶段（含 gamma=1 时手写 pow 的浮点截断行为）。
+func GammaTable(gamma float64) [256]uint8 {
+	var table [256]uint8
+	for i := 0; i < 256; i++ {
+		table[i] = uint8(255 * pow(float64(i)/255, 1/gamma))
+	}
+	return table
 }
 
 func Blur(im *raster.Image, radius int) (*raster.Image, error) {

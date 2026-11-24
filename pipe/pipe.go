@@ -15,8 +15,8 @@ func Transform(pts []geom.Point, scale, rotate float64) []geom.Point {
 	out := make([]geom.Point, len(pts))
 	for i, p := range pts {
 		out[i] = geom.Point{}
-		out[i].X = scale*(p.X*c-p.Y*s)
-		out[i].Y = scale*(p.X*s+p.Y*c)
+		out[i].X = scale * (p.X*c - p.Y*s)
+		out[i].Y = scale * (p.X*s + p.Y*c)
 	}
 	return out
 }
@@ -36,11 +36,15 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	if err := im.Fill(moved, cfg.Supersample); err != nil {
 		return nil, err
 	}
-	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {
+	if err := shading.ApplySpace(im, cfg.Shading, 1.0, 0.0, cfg.InterpSpace); err != nil {
 		return nil, err
 	}
-	if err := post.Gamma(im, cfg.Gamma); err != nil {
-		return nil, err
+	// linear/perceptual 空间已在 shading 末端完成 sRGB 编码，不能再叠 gamma 传递。
+	// 默认 encoded 空间保持历史调用：即使 gamma=1 也照走原 LUT（其浮点截断行为被逐字节锁定）。
+	if !cfg.TransferOwnsEncoding() {
+		if err := post.Gamma(im, cfg.Gamma); err != nil {
+			return nil, err
+		}
 	}
 	out, err := post.Blur(im, cfg.Blur)
 	if err != nil {
