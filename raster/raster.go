@@ -20,7 +20,27 @@ func New(w, h int) (*Image, error) {
 	return &Image{W: w, H: h, Pix: make([]uint8, w*h)}, nil
 }
 
+// Fill 按超采样覆盖率填充全部多边形，同一像素被多个图形覆盖时只取
+// 并集覆盖率（不会把覆盖率相加）。不收集统计信息；需要统计时用
+// FillStats。
 func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
+	return im.fill(polys, supersample, nil)
+}
+
+// FillStats 与 Fill 填充出的图像逐字节相同，同时记录每个像素被多少个
+// 图形写入（即覆盖该像素的图形个数，同一图形只记一次）。
+//
+// 统计只读地观察填充过程：它额外的多边形内外判定不影响 hit 计数，
+// 也不影响写入 Pix 的字节。
+func (im *Image) FillStats(polys [][]geom.Point, supersample int) (*CoverageStats, error) {
+	st := &CoverageStats{}
+	if err := im.fill(polys, supersample, st); err != nil {
+		return nil, err
+	}
+	return st, nil
+}
+
+func (im *Image) fill(polys [][]geom.Point, supersample int, st *CoverageStats) error {
 	if supersample < 1 {
 		return errors.New("supersample 必须为正")
 	}
@@ -54,24 +74,51 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 	if spany == 0 {
 		spany = 1
 	}
+	if st != nil {
+		st.begin(im.W, im.H, supersample, polys, minx, miny, spanx, spany)
+	}
+	var seen []bool
+	if st != nil {
+		seen = make([]bool, len(polys))
+	}
 	den := supersample * supersample
 	for row := 0; row < im.H; row++ {
 		for col := 0; col < im.W; col++ {
 			hit := 0
+			if st != nil {
+				for i := range seen {
+					seen[i] = false
+				}
+			}
 			for sj := 0; sj < supersample; sj++ {
 				for si := 0; si < supersample; si++ {
 					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
 					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
-					for _, p := range polys {
+					found := false
+					for k, p := range polys {
 						if geom.Inside(p, px, py) {
-							hit++
-							break
+							found = true
+							if st == nil {
+								break
+							}
+							// 统计开启时不提前跳出，才能记下所有覆盖
+							// 该像素的图形；hit 仍按子采样点只记一次。
+							seen[k] = true
 						}
+					}
+					if found {
+						hit++
 					}
 				}
 			}
 			im.Pix[row*im.W+col] = uint8(255 * hit / den)
+			if st != nil {
+				st.record(row*im.W+col, seen)
+			}
 		}
+	}
+	if st != nil {
+		st.finish(polys)
 	}
 	return nil
 }
