@@ -28,9 +28,15 @@ func Flatten(p0, p1, p2, p3 Point, segments int) ([]Point, error) {
 }
 
 func Length(pts []Point) float64 {
-	total := 0.0
+	// Kahan 补偿求和：累加顺序固定（按下标），补偿项吸收低位舍入，
+	// 结果只取决于输入内容，与运行次数/内存布局无关。
+	total, compensation := 0.0, 0.0
 	for i := 0; i+1 < len(pts); i++ {
-		total += math.Hypot(pts[i+1].X-pts[i].X, pts[i+1].Y-pts[i].Y)
+		seg := math.Hypot(pts[i+1].X-pts[i].X, pts[i+1].Y-pts[i].Y)
+		y := seg - compensation
+		t := total + y
+		compensation = (t - total) - y
+		total = t
 	}
 	return total
 }

@@ -45,3 +45,16 @@ func TestStrokeRejectsZero(t *testing.T) {
 		t.Fatal("重复点应报错")
 	}
 }
+
+func TestLengthKahanAccuracy(t *testing.T) {
+	// 万段等长微小线段：朴素顺序求和会持续丢失低位，Kahan 补偿后应贴近理论总长。
+	pts := make([]Point, 10001)
+	for i := range pts {
+		pts[i] = Point{X: float64(i) * 1e-4, Y: 0}
+	}
+	got := Length(pts)
+	want := 1.0
+	if d := got - want; d < -1e-12 || d > 1e-12 {
+		t.Fatalf("补偿求和精度异常: got=%v want=%v", got, want)
+	}
+}

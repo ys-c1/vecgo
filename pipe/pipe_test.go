@@ -1,6 +1,7 @@
 package pipe
 
 import (
+	"bytes"
 	"testing"
 
 	"vecgo/config"
@@ -17,6 +18,26 @@ func TestRunProducesPixels(t *testing.T) {
 	}
 	if im.CountOn(1) == 0 {
 		t.Fatal("应有像素被点亮")
+	}
+}
+
+func TestRunDeterministicAcrossIterations(t *testing.T) {
+	scene := [][]geom.Point{{{X: 0, Y: 0}, {X: 10, Y: 0}, {X: 10, Y: 10}, {X: 0, Y: 10}}}
+	var ref []byte
+	for i := 0; i < 10; i++ {
+		cfg := config.Default()
+		cfg.Width, cfg.Height = 32, 32
+		im, err := Run(scene, cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ref == nil {
+			ref = append([]byte(nil), im.Pix...)
+			continue
+		}
+		if !bytes.Equal(im.Pix, ref) {
+			t.Fatalf("第 %d 次渲染与首次结果不一致", i+1)
+		}
 	}
 }
 
