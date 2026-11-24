@@ -11,6 +11,14 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+
+	// Frame 选择几何→像素的映射/缩放路径：
+	//   "" 或 "bbox"：原始路径，按多边形包围盒归一化到整幅（默认，产物与历史一致）；
+	//   "world"    ：固定世界视口，使用 MinX/MinY/PPU，缩放会让边在固定像素网格上移动。
+	Frame string
+	MinX  float64
+	MinY  float64
+	PPU   float64 // 仅 Frame=="world" 时使用，必须为正（像素/世界单位）
 }
 
 func Default() Config {
@@ -38,6 +46,15 @@ func (c Config) Validate() error {
 	}
 	if c.Shading != "flat" && c.Shading != "gradient" {
 		return fmt.Errorf("shading 非法: %s", c.Shading)
+	}
+	switch c.Frame {
+	case "", "bbox":
+	case "world":
+		if c.PPU <= 0 {
+			return fmt.Errorf("world 视口需要正的 PPU: %v", c.PPU)
+		}
+	default:
+		return fmt.Errorf("frame 非法: %s（应为 bbox 或 world）", c.Frame)
 	}
 	if c.Output == "" {
 		return fmt.Errorf("output 不能为空")
