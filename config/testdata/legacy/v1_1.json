@@ -1,0 +1,11 @@
+{
+  "imgW": 48,
+  "imgH": 32,
+  "zoom": 1.5,
+  "angle": 0.52,
+  "samples": 3,
+  "fill": "gradient",
+  "gammaV": 2.2,
+  "soften": 1,
+  "dest": "v1_1.pgm"
+}

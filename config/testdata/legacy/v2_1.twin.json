@@ -1,0 +1,11 @@
+{
+  "width": 40,
+  "height": 40,
+  "scale": 2.0,
+  "rotate": 0.785,
+  "supersample": 2,
+  "shading": "gradient",
+  "gamma": 1.8,
+  "blur": 0,
+  "output": "v2_1.pgm"
+}

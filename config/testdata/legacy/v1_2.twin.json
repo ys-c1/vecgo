@@ -1,0 +1,11 @@
+{
+  "width": 80,
+  "height": 60,
+  "scale": 0.8,
+  "rotate": 1.2,
+  "supersample": 4,
+  "shading": "flat",
+  "gamma": 0.5,
+  "blur": 2,
+  "output": "v1_2.pgm"
+}
