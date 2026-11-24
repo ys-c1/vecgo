@@ -15,8 +15,8 @@ func Transform(pts []geom.Point, scale, rotate float64) []geom.Point {
 	out := make([]geom.Point, len(pts))
 	for i, p := range pts {
 		out[i] = geom.Point{}
-		out[i].X = scale*(p.X*c-p.Y*s)
-		out[i].Y = scale*(p.X*s+p.Y*c)
+		out[i].X = scale * (p.X*c - p.Y*s)
+		out[i].Y = scale * (p.X*s + p.Y*c)
 	}
 	return out
 }
@@ -36,8 +36,16 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	if err := im.Fill(moved, cfg.Supersample); err != nil {
 		return nil, err
 	}
-	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {
-		return nil, err
+	// 默认（"" 或 "linear"）走历史路径，调用序列与运算顺序完全不变，
+	// 因而默认产物与改动前逐字节相同（由 TestDefaultArtifactsByteIdentical 锁定）。
+	if cfg.LevelDist == "" || cfg.LevelDist == "linear" {
+		if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := shading.ApplyDist(im, cfg.Shading, 1.0, 0.0, cfg.LevelDist, cfg.LevelAlpha); err != nil {
+			return nil, err
+		}
 	}
 	if err := post.Gamma(im, cfg.Gamma); err != nil {
 		return nil, err

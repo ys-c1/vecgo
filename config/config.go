@@ -1,6 +1,10 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"vecgo/level"
+)
 
 type Config struct {
 	Width, Height int
@@ -11,10 +15,15 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+	// LevelDist 是色阶沿参数轴的分布："" 或 "linear"（默认，历史产物逐字节不变）、
+	// "perceptual"（幂律感知均匀，配合 LevelAlpha，缺省 2）、"lab"（CIE L* 交叉验证）。
+	LevelDist string
+	// LevelAlpha 是幂律感知假设 P(t)=t^LevelAlpha 的指数；0 表示用 level.DefaultAlpha(=2)。
+	LevelAlpha float64
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm", LevelDist: "linear", LevelAlpha: 0}
 }
 
 func (c Config) Validate() error {
@@ -38,6 +47,12 @@ func (c Config) Validate() error {
 	}
 	if c.Shading != "flat" && c.Shading != "gradient" {
 		return fmt.Errorf("shading 非法: %s", c.Shading)
+	}
+	if _, err := level.Normalize(c.LevelDist); err != nil {
+		return err
+	}
+	if _, err := level.CleanAlpha(c.LevelAlpha); err != nil {
+		return err
 	}
 	if c.Output == "" {
 		return fmt.Errorf("output 不能为空")
