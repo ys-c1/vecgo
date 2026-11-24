@@ -1,6 +1,7 @@
 package post
 
 import (
+	"math"
 	"testing"
 
 	"vecgo/raster"
@@ -37,5 +38,15 @@ func TestBlurZeroCopies(t *testing.T) {
 	}
 	if out == im {
 		t.Fatal("应返回新图")
+	}
+}
+
+// TestGammaRejectsNonFinite：NaN 会穿过区间比较，必须在比较前拦下。
+func TestGammaRejectsNonFinite(t *testing.T) {
+	im, _ := raster.New(1, 1)
+	for _, g := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		if err := Gamma(im, g); err == nil {
+			t.Fatalf("gamma=%v 应报错", g)
+		}
 	}
 }

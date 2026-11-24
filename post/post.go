@@ -2,11 +2,16 @@ package post
 
 import (
 	"errors"
+	"math"
 
 	"vecgo/raster"
 )
 
 func Gamma(im *raster.Image, gamma float64) error {
+	// NaN 会让下面的区间比较全部为假，必须在比较之前拦下。
+	if math.IsNaN(gamma) || math.IsInf(gamma, 0) {
+		return errors.New("gamma 非有限值")
+	}
 	if gamma < 0.1 || gamma > 10 {
 		return errors.New("gamma 超出范围")
 	}
