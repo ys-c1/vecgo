@@ -1,0 +1,282 @@
+{
+  "definition": "P(Y)=L*(Y)/100, L*=116 f(Y)-16; f=cbrt(Y) if Y\u003e(6/29)^3 else Y/(3*(6/29)^2)+4/29; Y=0.2126R_lin+0.7152G_lin+0.0722B_lin, grayscale Y=I.",
+  "equation": "P(w*(I1+I2)) = P(I1)+P(I2); not w1+w2=1 / linear-energy equality.",
+  "criterion": "|F(w)|\u003c=1e-13 AND |w_next-w|\u003c=1e-14*(1+|w|); max 50; Newton with bisection guard.",
+  "groups": [
+    {
+      "n": 2,
+      "intensity": [
+        0.1,
+        0.1
+      ],
+      "sum_linear": 0.2,
+      "target_perceived": 0.7568486093981648,
+      "target_lstar": 75.68486093981647,
+      "linear_weight": 0.5,
+      "linear_out": 0.1,
+      "brightness_linear": 0.3784243046990824,
+      "lstar_linear": 37.84243046990824,
+      "weights_proportional": [
+        0.5,
+        0.5
+      ],
+      "perceptual_weight": 2.4688171664596923,
+      "perceptual_out_linear": 0.4937634332919385,
+      "brightness_perceptual": 0.7568486093981648,
+      "lstar_perceptual": 75.68486093981647,
+      "iterations": 6,
+      "residual": 0,
+      "converged": true,
+      "clipped": false,
+      "solver": "newton",
+      "tol_residual": 1e-13,
+      "tol_step": 1e-14,
+      "closed_form_weight": 2.4688171664596927,
+      "trace": [
+        {
+          "k": 1,
+          "w": 1,
+          "abs_f": 0.23847649413277983,
+          "step": 1.054626902107345,
+          "guarded": false
+        },
+        {
+          "k": 2,
+          "w": 2.054626902107345,
+          "abs_f": 0.054441533458870484,
+          "step": 0.38910988449883543,
+          "guarded": false
+        },
+        {
+          "k": 3,
+          "w": 2.4437367866061805,
+          "abs_f": 0.0031152868901345165,
+          "step": 0.024995064708894343,
+          "guarded": false
+        },
+        {
+          "k": 4,
+          "w": 2.468731851315075,
+          "abs_f": 0.00001056132923571429,
+          "step": 0.00008531416185686425,
+          "guarded": false
+        },
+        {
+          "k": 5,
+          "w": 2.4688171654769318,
+          "abs_f": 1.2165646268158525e-10,
+          "step": 9.827605396139916e-10,
+          "guarded": false
+        },
+        {
+          "k": 6,
+          "w": 2.4688171664596923,
+          "abs_f": 0,
+          "step": 0,
+          "guarded": false
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "intensity": [
+        0.18,
+        0.06
+      ],
+      "sum_linear": 0.24,
+      "target_perceived": 0.789085722476784,
+      "target_lstar": 78.90857224767839,
+      "linear_weight": 0.5,
+      "linear_out": 0.12,
+      "brightness_linear": 0.4121612012446691,
+      "lstar_linear": 41.21612012446691,
+      "weights_proportional": [
+        0.75,
+        0.25
+      ],
+      "perceptual_weight": 2.28208129381646,
+      "perceptual_out_linear": 0.5476995105159503,
+      "brightness_perceptual": 0.7890857224767839,
+      "lstar_perceptual": 78.90857224767839,
+      "iterations": 6,
+      "residual": 1.1102230246251565e-16,
+      "converged": true,
+      "clipped": false,
+      "solver": "newton",
+      "tol_residual": 1e-13,
+      "tol_step": 1e-14,
+      "closed_form_weight": 2.2820812938164603,
+      "trace": [
+        {
+          "k": 1,
+          "w": 1,
+          "abs_f": 0.22820778109548878,
+          "step": 0.9497077160866365,
+          "guarded": false
+        },
+        {
+          "k": 2,
+          "w": 1.9497077160866365,
+          "abs_f": 0.04851413739542698,
+          "step": 0.31509451192801996,
+          "guarded": false
+        },
+        {
+          "k": 3,
+          "w": 2.2648022280146565,
+          "abs_f": 0.00240144519365304,
+          "step": 0.017235308187379506,
+          "guarded": false
+        },
+        {
+          "k": 4,
+          "w": 2.282037536202036,
+          "abs_f": 0.0000060660989088523465,
+          "step": 0.000043757334746263865,
+          "guarded": false
+        },
+        {
+          "k": 5,
+          "w": 2.2820812935367822,
+          "abs_f": 3.877143051056464e-11,
+          "step": 2.7967850257937243e-10,
+          "guarded": false
+        },
+        {
+          "k": 6,
+          "w": 2.2820812938164607,
+          "abs_f": 1.1102230246251565e-16,
+          "step": 8.881784197001252e-16,
+          "guarded": false
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "intensity": [
+        0.012,
+        0.004
+      ],
+      "sum_linear": 0.016,
+      "target_perceived": 0.14170555612422484,
+      "target_lstar": 14.170555612422483,
+      "linear_weight": 0.5,
+      "linear_out": 0.008,
+      "brightness_linear": 0.0722637037037037,
+      "lstar_linear": 7.226370370370371,
+      "weights_proportional": [
+        0.75,
+        0.25
+      ],
+      "perceptual_weight": 1.099653786366673,
+      "perceptual_out_linear": 0.01759446058186677,
+      "brightness_perceptual": 0.14170555612422484,
+      "lstar_perceptual": 14.170555612422483,
+      "iterations": 5,
+      "residual": 0,
+      "converged": true,
+      "clipped": false,
+      "solver": "newton",
+      "tol_residual": 1e-13,
+      "tol_step": 1e-14,
+      "closed_form_weight": 1.0996537863666729,
+      "trace": [
+        {
+          "k": 1,
+          "w": 1,
+          "abs_f": 0.009403872548614245,
+          "step": 0.09651541277744702,
+          "guarded": false
+        },
+        {
+          "k": 2,
+          "w": 1.096515412777447,
+          "abs_f": 0.0002872925293229134,
+          "step": 0.0031353841929278037,
+          "guarded": false
+        },
+        {
+          "k": 3,
+          "w": 1.0996507969703748,
+          "abs_f": 2.7339462080333554e-7,
+          "step": 0.0000029893935891145418,
+          "guarded": false
+        },
+        {
+          "k": 4,
+          "w": 1.099653786363964,
+          "abs_f": 2.477740235207193e-13,
+          "step": 2.709166224690307e-12,
+          "guarded": false
+        },
+        {
+          "k": 5,
+          "w": 1.099653786366673,
+          "abs_f": 0,
+          "step": 0,
+          "guarded": false
+        }
+      ]
+    }
+  ],
+  "coverage_points": [
+    {
+      "x": 0.25,
+      "coverage": 0.25,
+      "gray_trunc": 63
+    },
+    {
+      "x": 0.5,
+      "coverage": 0.5,
+      "gray_trunc": 127
+    },
+    {
+      "x": 0.75,
+      "coverage": 0.75,
+      "gray_trunc": 191
+    }
+  ],
+  "coverage_supersample": [
+    {
+      "x": 0.25,
+      "n": 16,
+      "hits": 64,
+      "total": 256,
+      "sampled": 0.25,
+      "analytic": 0.25,
+      "abs_diff": 0
+    },
+    {
+      "x": 0.5,
+      "n": 16,
+      "hits": 128,
+      "total": 256,
+      "sampled": 0.5,
+      "analytic": 0.5,
+      "abs_diff": 0
+    },
+    {
+      "x": 0.75,
+      "n": 16,
+      "hits": 192,
+      "total": 256,
+      "sampled": 0.75,
+      "analytic": 0.75,
+      "abs_diff": 0
+    }
+  ],
+  "gamma_crosscheck": [
+    {
+      "name": "G1 等高暗调",
+      "gamma_weight_closed_form": 2.29739670999407
+    },
+    {
+      "name": "G2 强主弱辅(3:1)",
+      "gamma_weight_closed_form": 2.1293383828046712
+    },
+    {
+      "name": "G3 深暗跨线性趾",
+      "gamma_weight_closed_form": 2.129338382804671
+    }
+  ]
+}
