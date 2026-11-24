@@ -1,2 +1,3 @@
 vecgo
 *.pgm
+!artifacts/*.pgm
