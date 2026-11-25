@@ -76,6 +76,50 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 	return nil
 }
 
+// FillView 在显式视窗 v 内光栅化 polys；active 为 nil 时绘制全部多边形，
+// 否则只绘制 active[i] 为真的第 i 个。供剔除路径与精确路径做逐像素比对。
+func (im *Image) FillView(polys [][]geom.Point, active []bool, v [4]float64, supersample int) error {
+	if supersample < 1 {
+		return errors.New("supersample 必须为正")
+	}
+	for _, p := range polys {
+		if len(p) < 3 {
+			return errors.New("多边形至少三个顶点")
+		}
+	}
+	if active != nil && len(active) != len(polys) {
+		return errors.New("active 长度必须与多边形数量一致")
+	}
+	minx, miny, maxx, maxy := v[0], v[1], v[2], v[3]
+	if maxx <= minx || maxy <= miny {
+		return errors.New("视窗必须为正")
+	}
+	spanx, spany := maxx-minx, maxy-miny
+	den := supersample * supersample
+	for row := 0; row < im.H; row++ {
+		for col := 0; col < im.W; col++ {
+			hit := 0
+			for sj := 0; sj < supersample; sj++ {
+				for si := 0; si < supersample; si++ {
+					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
+					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
+					for i, p := range polys {
+						if active != nil && !active[i] {
+							continue
+						}
+						if geom.Inside(p, px, py) {
+							hit++
+							break
+						}
+					}
+				}
+			}
+			im.Pix[row*im.W+col] = uint8(255 * hit / den)
+		}
+	}
+	return nil
+}
+
 func (im *Image) SavePGM(path string) error {
 	if im.W == 0 || im.H == 0 {
 		return errors.New("空图不能导出")
