@@ -1,0 +1,12 @@
+s=4, fc=0.125000 cycles/input-sample, sigma_gauss=1.118034
+white-input out-of-band energy fraction Q(fc):
+  gauss exact (erfc) = 2.143017e-01 | numeric = 2.142100e-01
+  box   exact (Si)   = 2.263050e-01 | numeric = 2.259706e-01
+  box numeric energy capture over grid = 0.9997 (sinc^2 tail truncation)
+Heisenberg  r_p^2 * r_nu^2 >= 1/(16 pi^2) = 6.332574e-03
+  gauss discrete lhs = 1.265904e-02 (r_p^2=1.249217, r_nu^2=1.013358e-02)
+  box   discrete lhs = 2.149140e-02 (r_p^2=1.250000, r_nu^2=1.719312e-02)
+  continuous Gaussian exact lhs = 6.332574e-03
+sharpness-constrained Gaussian alias floor:
+  |H(fp)| >= 0.9 at fp=0.0625 => sigma <= 1.1689
+  => Q(fc) >= 1.941597e-01
