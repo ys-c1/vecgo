@@ -20,16 +20,17 @@ func New(w, h int) (*Image, error) {
 	return &Image{W: w, H: h, Pix: make([]uint8, w*h)}, nil
 }
 
-func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
-	if supersample < 1 {
-		return errors.New("supersample 必须为正")
-	}
+func checkPolys(polys [][]geom.Point) error {
 	for _, p := range polys {
 		if len(p) < 3 {
 			return errors.New("多边形至少三个顶点")
 		}
 	}
-	minx, miny := polys[0][0].X, polys[0][0].Y
+	return nil
+}
+
+func polysBBox(polys [][]geom.Point) (minx, miny, spanx, spany float64) {
+	minx, miny = polys[0][0].X, polys[0][0].Y
 	maxx, maxy := minx, miny
 	for _, p := range polys {
 		for _, q := range p {
@@ -47,13 +48,24 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 			}
 		}
 	}
-	spanx, spany := maxx-minx, maxy-miny
+	spanx, spany = maxx-minx, maxy-miny
 	if spanx == 0 {
 		spanx = 1
 	}
 	if spany == 0 {
 		spany = 1
 	}
+	return minx, miny, spanx, spany
+}
+
+func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
+	if supersample < 1 {
+		return errors.New("supersample 必须为正")
+	}
+	if err := checkPolys(polys); err != nil {
+		return err
+	}
+	minx, miny, spanx, spany := polysBBox(polys)
 	den := supersample * supersample
 	for row := 0; row < im.H; row++ {
 		for col := 0; col < im.W; col++ {
