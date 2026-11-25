@@ -35,6 +35,18 @@ func Length(pts []Point) float64 {
 	return total
 }
 
+// Shoelace 用鞋带公式返回有向面积的绝对值。
+// 它是后续“裁剪保面积”分析中面积的唯一定义，裁剪前后都用同一个公式度量。
+func Shoelace(pts []Point) float64 {
+	var twice float64
+	n := len(pts)
+	for i := 0; i < n; i++ {
+		p, q := pts[i], pts[(i+1)%n]
+		twice += p.X*q.Y - p.Y*q.X
+	}
+	return math.Abs(twice) / 2
+}
+
 func Inside(poly []Point, px, py float64) bool {
 	inside := false
 	n := len(poly)
