@@ -1,0 +1,5 @@
+group,Lmax_px,A_px2,kappa_per_px,obtuse_angle_deg,hmin_px,min_band_width_px,jac_max_entry,jac_over_half_kappa,err_single_vertex_px,err_bound_kappa_delta_half,err_measured_8bit_equiv,err_bound_8bit_equiv,stripes_ideal,stripes_before_worst,stripes_before_median,stripes_after_cull,runs_ideal,runs_before_worst,kept
+G1,480.0,28800.0,0.016667,126.87,120.000,15.000,0.008333,1.0000,0.008298,0.008333,2.12,2.12,85,86,85,86,952,968,true
+G2,480.0,7200.0,0.066667,165.75,30.000,3.750,0.033332,1.0000,0.032759,0.033333,8.35,8.50,85,91,86,91,240,250,true
+G3,480.0,1440.0,0.333333,177.14,6.000,0.750,0.166639,0.9998,0.150000,0.166667,38.25,42.50,48,63,48,0,48,66,false
+TOTAL,,,,,,,,,,,,218,240,,177,1240,1284,
