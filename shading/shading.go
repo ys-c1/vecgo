@@ -22,6 +22,9 @@ func Apply(im *raster.Image, mode string, top, bottom float64) error {
 			if im.H > 1 {
 				t = top + (bottom-top)*float64(row)/float64(im.H-1)
 			}
+			// 即使以后放宽端点校验，也必须先把参数截断在 [0,1]，
+			// 不能让外推值直接进入 uint8 转换/输出饱和。
+			t = clampUnit(t)
 			v = uint8(255 * t)
 		}
 		for col := 0; col < im.W; col++ {
