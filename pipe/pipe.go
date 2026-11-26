@@ -15,14 +15,18 @@ func Transform(pts []geom.Point, scale, rotate float64) []geom.Point {
 	out := make([]geom.Point, len(pts))
 	for i, p := range pts {
 		out[i] = geom.Point{}
-		out[i].X = scale*(p.X*c-p.Y*s)
-		out[i].Y = scale*(p.X*s+p.Y*c)
+		out[i].X = scale * (p.X*c - p.Y*s)
+		out[i].Y = scale * (p.X*s + p.Y*c)
 	}
 	return out
 }
 
 func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	rule, err := geom.ParseFillRule(cfg.FillRule)
+	if err != nil {
 		return nil, err
 	}
 	im, err := raster.New(cfg.Width, cfg.Height)
@@ -33,7 +37,7 @@ func Run(scene [][]geom.Point, cfg config.Config) (*raster.Image, error) {
 	for i, poly := range scene {
 		moved[i] = Transform(poly, cfg.Scale, cfg.Rotate)
 	}
-	if err := im.Fill(moved, cfg.Supersample); err != nil {
+	if err := im.FillRule(moved, cfg.Supersample, rule); err != nil {
 		return nil, err
 	}
 	if err := shading.Apply(im, cfg.Shading, 1.0, 0.0); err != nil {

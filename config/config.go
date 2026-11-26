@@ -1,6 +1,10 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"vecgo/geom"
+)
 
 type Config struct {
 	Width, Height int
@@ -11,10 +15,11 @@ type Config struct {
 	Gamma         float64
 	Blur          int
 	Output        string
+	FillRule      string
 }
 
 func Default() Config {
-	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm"}
+	return Config{Width: 64, Height: 64, Scale: 1, Rotate: 0, Supersample: 2, Shading: "flat", Gamma: 1, Blur: 0, Output: "out.pgm", FillRule: "non-zero"}
 }
 
 func (c Config) Validate() error {
@@ -41,6 +46,9 @@ func (c Config) Validate() error {
 	}
 	if c.Output == "" {
 		return fmt.Errorf("output 不能为空")
+	}
+	if _, err := geom.ParseFillRule(c.FillRule); err != nil {
+		return err
 	}
 	return nil
 }
