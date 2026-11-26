@@ -29,6 +29,10 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 			return errors.New("多边形至少三个顶点")
 		}
 	}
+	// 方向规则：外环与洞环的有向面积符号必须相反，绕数才能抵消。
+	if err := geom.CheckOrientation(polys); err != nil {
+		return err
+	}
 	minx, miny := polys[0][0].X, polys[0][0].Y
 	maxx, maxy := minx, miny
 	for _, p := range polys {
@@ -62,11 +66,10 @@ func (im *Image) Fill(polys [][]geom.Point, supersample int) error {
 				for si := 0; si < supersample; si++ {
 					px := minx + (float64(col)+(float64(si)+0.5)/float64(supersample))*spanx/float64(im.W)
 					py := miny + (float64(row)+(float64(sj)+0.5)/float64(supersample))*spany/float64(im.H)
-					for _, p := range polys {
-						if geom.Inside(p, px, py) {
-							hit++
-							break
-						}
+					// 非零绕数规则：所有环的绕数之和非零才填充。
+					// 外环贡献 +1，反向洞环贡献 -1，洞内 W=0 被挖空。
+					if geom.WindingSum(polys, px, py) != 0 {
+						hit++
 					}
 				}
 			}

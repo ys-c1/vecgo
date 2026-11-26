@@ -2,6 +2,7 @@ package geom
 
 import (
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -50,6 +51,68 @@ func Inside(poly []Point, px, py float64) bool {
 		}
 	}
 	return inside
+}
+
+// SignedArea 返回环的有向（带符号）面积：S = 1/2 * Σ(x_i*y_{i+1} - x_{i+1}*y_i)。
+// 屏幕坐标（y 向下）下 S>0 表示逆时针(CCW)，S<0 表示顺时针(CW)。
+// 方向规则的判定只看符号：外环与洞环的有向面积符号必须相反。
+func SignedArea(poly []Point) float64 {
+	var s float64
+	n := len(poly)
+	for i := 0; i < n; i++ {
+		a := poly[i]
+		b := poly[(i+1)%n]
+		s += a.X*b.Y - b.X*a.Y
+	}
+	return s * 0.5
+}
+
+// Winding 返回点 (px,py) 关于单个环的绕数（整数）。
+// 向上穿越射线且交点在点右侧记 +1，向下穿越记 -1。
+// 绕数的符号由环的绕向决定，大小由嵌套层数决定。
+func Winding(poly []Point, px, py float64) int {
+	w := 0
+	n := len(poly)
+	for i := 0; i < n; i++ {
+		ax, ay := poly[i].X, poly[i].Y
+		bx, by := poly[(i+1)%n].X, poly[(i+1)%n].Y
+		if ay <= py {
+			if by > py && (bx-ax)*(py-ay)-(by-ay)*(px-ax) > 0 {
+				w++ // 向上穿越，点在边左侧
+			}
+		} else {
+			if by <= py && (bx-ax)*(py-ay)-(by-ay)*(px-ax) < 0 {
+				w-- // 向下穿越，点在边右侧
+			}
+		}
+	}
+	return w
+}
+
+// WindingSum 返回点关于一组环（外环 + 洞环）的绕数之和 W = Σ W_k。
+// 非零绕数填充规则：W ≠ 0 视为在实体内部，W = 0 视为在外部或洞中。
+func WindingSum(rings [][]Point, px, py float64) int {
+	w := 0
+	for _, r := range rings {
+		w += Winding(r, px, py)
+	}
+	return w
+}
+
+// CheckOrientation 按有向面积符号执行方向规则：
+// 外环符号与每个洞环符号必须相反（sign(S_outer) * sign(S_hole) < 0），
+// 否则洞的绕数无法与外环抵消，返回错误。
+func CheckOrientation(rings [][]Point) error {
+	if len(rings) == 0 {
+		return errors.New("至少需要一个环")
+	}
+	outer := math.Signbit(SignedArea(rings[0])) // true 表示负（CW）
+	for i := 1; i < len(rings); i++ {
+		if math.Signbit(SignedArea(rings[i])) == outer {
+			return fmt.Errorf("第 %d 个环与外环绕向相同，有向面积符号未相反，洞无法抵消", i)
+		}
+	}
+	return nil
 }
 
 func Clip(poly, window []Point) ([]Point, error) {
